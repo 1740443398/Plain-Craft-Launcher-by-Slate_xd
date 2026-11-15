@@ -1,0 +1,2265 @@
+﻿Imports System.ComponentModel
+Imports System.Windows.Interop
+
+Public Class FormMain
+
+#Region "基础"
+
+    '更新日志
+    Private Sub ShowUpdateLog(LastVersion As Integer)
+        Dim FeatureCount As Integer = 0, BugCount As Integer = 0
+        Dim FeatureList As New List(Of KeyValuePair(Of Integer, String))
+        '统计更新日志条目
+        If BuildType = BuildTypes.Release Then
+            If LastVersion < 408 Then 'Release 2.13.1.1
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：版本设置中，添加打开截图文件夹的快捷方式"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：导出整合包时，可以勾选导出光影设置文件"))
+                FeatureCount += 23
+                BugCount += 28
+            End If
+            If LastVersion < 406 Then 'Release 2.13.0.1
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(4, "新增：重做 Java 管理与相关设置，允许调整 Java 优先级、指定 Java 版本范围等"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "优化：导出整合包时允许自动导出版本文件夹中的 Java"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "优化：重做弹出提示的样式以及动画，以更符合现代 UI 审美"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：可能无法安装 OptiFine 26.1.2"))
+                FeatureCount += 35
+                BugCount += 17
+            End If
+            If LastVersion < 404 Then 'Release 2.12.8.2
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：Windows 7 无法正常联网"))
+                FeatureCount += 1
+                BugCount += 2
+            End If
+            If LastVersion < 402 Then 'Release 2.12.8.1
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：升级框架到 .NET Framework 4.8"))
+                FeatureCount += 35
+                BugCount += 21
+            End If
+            If LastVersion < 398 Then 'Release 2.12.7.3
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：下载游戏、整合包的稳定性"))
+                FeatureCount += 1
+                BugCount += 5
+            End If
+            If LastVersion < 391 Then 'Release 2.12.6.2
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：会为部分 Forge / NeoForge 选择不支持的 Java"))
+                BugCount += 4
+            End If
+            If LastVersion < 389 Then 'Release 2.12.6.1
+                If LastVersion = 387 Then FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：无法使用 Java 25+ 启动 Forge"))
+                FeatureCount += 4
+                BugCount += 3
+            End If
+            If LastVersion < 387 Then 'Release 2.12.6
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "优化：降低 Minecraft 的内存占用"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：Minecraft 使用 Java 25+ 时的一个性能问题"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：无法下载 NeoForge 26.1"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：部分关键词搜不到资源，特别是中文 Mod 搜索经常没有结果"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：老版本 Windows 无法启动游戏"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：连接 Mojang 的服务可能失败，提示错误码 421"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：无法访问爱发电"))
+                FeatureCount += 24
+                BugCount += 19
+            End If
+            If LastVersion < 383 Then 'Release 2.12.3
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：部分关键词搜不到资源，特别是中文 Mod 搜索经常没有结果"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：下载可能完全卡住，或是下载进度反复回退"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "新增：内存管理设置，可以选择 G1GC、ZGC 或分代 ZGC"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "优化：来自 Modrinth 的文件下载速度"))
+                FeatureCount += 15
+                BugCount += 16
+            End If
+            If LastVersion < 381 Then 'Release 2.12.2
+                FeatureCount += 3
+                BugCount += 13
+            End If
+            If LastVersion < 379 Then 'Release 2.12.1
+                If LastVersion >= 376 Then
+                    FeatureList.Add(New KeyValuePair(Of Integer, String)(5, "删除：暂时隐藏联机入口……不过只是暂时关闭，它还会回来的！"))
+                End If
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "新增：适配新的 Minecraft 版本号系统与 Unobfuscated 版本"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：巨幅优化各个下载页面和 Mod 管理页面的性能"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "优化：更换披风时会显示当前使用的披风"))
+                FeatureCount += 33
+                BugCount += 29
+            End If
+            If LastVersion < 376 Then 'Release 2.11.2
+                'FeatureList.Add(New KeyValuePair(Of Integer, String)(5, "新增：联机功能！"))
+                FeatureCount += 32
+                BugCount += 21
+            End If
+        Else
+            '5：          FEAT+
+            '4：     IMP+ FEAT*
+            '3：BUG+ IMP* FEAT-
+            '2：BUG* IMP-
+            '1：BUG-
+            If LastVersion < 410 Then 'Snapshot 2.13.1.1
+                If LastVersion = 409 Then FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：更新 Mod 时可能更新成另一个 Mod 加载器的版本"))
+                FeatureCount += 2
+                BugCount += 6
+            End If
+            If LastVersion < 409 Then 'Snapshot 2.13.1.0
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：版本设置中，添加打开截图文件夹的快捷方式"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：导出整合包时，可以勾选导出光影设置文件"))
+                FeatureCount += 21
+                BugCount += 22
+            End If
+            If LastVersion < 407 Then 'Snapshot 2.13.0.1
+                If LastVersion = 405 Then
+                    FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：使用部分主页预设时崩溃"))
+                    FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：无法删除部分文件夹"))
+                    FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：版本设置中指定的 Java 无法被保存"))
+                    FeatureCount += 1
+                    BugCount += 3
+                End If
+                FeatureCount += 2
+            End If
+            If LastVersion < 405 Then 'Snapshot 2.13.0.0
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(4, "新增：重做 Java 管理与相关设置，允许调整 Java 优先级、指定 Java 版本范围等"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "优化：导出整合包时允许自动导出版本文件夹中的 Java"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "优化：重做弹出提示的样式以及动画，以更符合现代 UI 审美"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：可能无法安装 OptiFine 26.1.2"))
+                FeatureCount += 35
+                BugCount += 17
+            End If
+            If LastVersion < 403 Then 'Snapshot 2.12.8.2
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：Windows 7 无法正常联网"))
+                FeatureCount += 1
+                BugCount += 2
+            End If
+            If LastVersion < 401 Then 'Snapshot 2.12.8.1
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：可能无法更换披风"))
+                FeatureCount += 8
+                BugCount += 6
+            End If
+            If LastVersion < 399 Then 'Snapshot 2.12.8.0
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：升级框架到 .NET Framework 4.8"))
+                FeatureCount += 28
+                BugCount += 19
+            End If
+            If LastVersion < 397 Then 'Snapshot 2.12.7.3
+                If LastVersion >= 393 AndAlso LastVersion < 397 Then FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：无法使用自定义隐藏主题"))
+            End If
+            If LastVersion < 395 Then 'Snapshot 2.12.7.2
+                If LastVersion = 393 Then FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：部分个性化功能失效"))
+            End If
+            If LastVersion < 393 Then 'Snapshot 2.12.7.1
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：允许永久关闭启动页面的快照版提示"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：下载游戏、整合包的稳定性"))
+                FeatureCount += 1
+                BugCount += 5
+            End If
+            If LastVersion < 390 Then 'Snapshot 2.12.6.2
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：会为部分 Forge / NeoForge 选择不支持的 Java"))
+                BugCount += 4
+            End If
+            If LastVersion < 388 Then 'Snapshot 2.12.6.1
+                If LastVersion = 386 Then FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：无法使用 Java 25+ 启动 Forge"))
+                FeatureCount += 4
+                BugCount += 3
+            End If
+            If LastVersion < 386 Then 'Snapshot 2.12.6
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：Minecraft 使用 Java 25+ 时的一个性能问题"))
+                If LastVersion = 384 OrElse LastVersion = 385 Then FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：无法正常重命名游戏版本"))
+                If LastVersion = 385 Then FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：无法显示 Modrinth 整合包的版本列表"))
+                BugCount += 1
+            End If
+            If LastVersion < 385 Then 'Snapshot 2.12.5
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：无法下载 NeoForge 26.1"))
+                If LastVersion = 384 Then
+                    FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：下载可能失败，提示任务管理刷新线程出错"))
+                    FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：无法保存选择的 Minecraft 文件夹"))
+                    FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：使用中文搜索 Mod 时，部分结果会忽略筛选条件"))
+                End If
+                FeatureCount += 3
+                BugCount += 6
+            End If
+            If LastVersion < 384 Then 'Snapshot 2.12.4
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "优化：降低 Minecraft 的内存占用"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：部分关键词搜不到资源，特别是中文 Mod 搜索经常没有结果"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：老版本 Windows 无法启动游戏"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：连接 Mojang 的服务可能失败，提示错误码 421"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：无法访问爱发电"))
+                FeatureCount += 21
+                BugCount += 14
+            End If
+            If LastVersion < 382 Then 'Snapshot 2.12.3
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "修复：下载可能完全卡住，或是下载进度反复回退"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "新增：内存管理设置，可以选择 G1GC、ZGC 或分代 ZGC"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "优化：来自 Modrinth 的文件下载速度"))
+                FeatureCount += 15
+                BugCount += 16
+            End If
+            If LastVersion < 380 Then 'Snapshot 2.12.2
+                FeatureCount += 3
+                BugCount += 13
+            End If
+            If LastVersion < 378 Then 'Snapshot 2.12.1
+                If LastVersion >= 377 Then
+                    FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "修复：在版本列表中存在 OptiFine 时可能无法加载版本列表"))
+                    BugCount += 2
+                End If
+            End If
+            If LastVersion < 377 Then 'Snapshot 2.12.0
+                If LastVersion >= 373 Then
+                    FeatureList.Add(New KeyValuePair(Of Integer, String)(5, "删除：暂时隐藏联机入口……不过只是暂时关闭，它还会回来的！"))
+                End If
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "新增：适配新的 Minecraft 版本号系统与 Unobfuscated 版本"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：巨幅优化各个下载页面和 Mod 管理页面的性能"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(1, "优化：更换披风时会显示当前使用的披风"))
+                FeatureCount += 33
+                BugCount += 29
+            End If
+            If LastVersion < 375 Then 'Snapshot 2.11.2
+                'If LastVersion >= 373 Then
+                '    FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "优化：对联机进行了各种各样的优化，以改善稳定性"))
+                '    FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：若有加入者的网络环境比房主更好，会提示可以让那位加入者担任房主"))
+                'End If
+                FeatureCount += 16
+                BugCount += 4
+            End If
+            If LastVersion < 374 Then 'Snapshot 2.11.1
+                'If LastVersion >= 373 Then
+                '    FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "优化：使用离线登录也可以直接加入联机房间了"))
+                '    FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "优化：会从所有共享节点中自动选择负载最低的进行中继连接"))
+                '    FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：若复制了邀请码，则可以直接快速加入房间"))
+                '    FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：关闭 PCL 时总是会提示是否退出联机，防止在关闭 PCL 时无意地关闭或退出了房间"))
+                '    FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "新增：允许自定义要连接的节点"))
+                'End If
+                FeatureCount += 9
+                BugCount += 7
+            End If
+            If LastVersion < 373 Then 'Snapshot 2.11.0
+                'FeatureList.Add(New KeyValuePair(Of Integer, String)(5, "新增：联机功能！"))
+                FeatureCount += 7
+                BugCount += 10
+            End If
+        End If
+        '整理更新日志文本
+        Dim ContentList As New List(Of String)
+        Dim SortedFeatures = FeatureList.OrderByDescending(Function(f) f.Key).ToList
+        If Not SortedFeatures.Any() AndAlso FeatureCount = 0 AndAlso BugCount = 0 Then ContentList.Add("没有更新日志……")
+        For i = 0 To Math.Min(9, SortedFeatures.Count - 1) '最多取 10 项
+            ContentList.Add(SortedFeatures(i).Value)
+        Next
+        If SortedFeatures.Count > 10 Then FeatureCount += SortedFeatures.Count - 10
+        If FeatureCount > 0 OrElse BugCount > 0 Then
+            ContentList.Add(If(FeatureCount > 0, FeatureCount & " 项小调整与修改", "") &
+                If(FeatureCount > 0 AndAlso BugCount > 0, "，", "") &
+                If(BugCount > 0, "修复了 " & BugCount & " 个 Bug", "") &
+                "，详见完整更新日志")
+        End If
+        Dim Content As String = "· " & ContentList.Join(vbCrLf & "· ")
+        '输出更新日志
+        RunInNewThread(
+        Sub()
+            If MyMsgBox(Content, "PCL 已更新至" & VersionDisplay, "确定", "完整更新日志") = 2 Then
+                OpenWebsite("https://meloong.com/afd/a/LTCat?tab=feed")
+            End If
+        End Sub, "UpdateLog Output")
+    End Sub
+
+    '窗口加载
+    Private IsWindowLoadFinished As Boolean = False
+    Public Sub New()
+        ApplicationStartTick = GetTimeMs()
+        '窗体参数初始化
+        FrmMain = Me
+        FrmLaunchLeft = New PageLaunchLeft
+        FrmLaunchRight = New PageLaunchRight
+        '版本号改变
+        Dim LastVersion As Integer = Settings.Get(Of Integer)("SystemLastVersionReg")
+        If LastVersion < VersionCode Then
+            '触发升级
+            UpgradeSub(LastVersion)
+        ElseIf LastVersion > VersionCode Then
+            '触发降级
+            DowngradeSub(LastVersion)
+        End If
+        '版本隔离设置迁移
+        If Not Settings.HasSaved("LaunchArgumentIndieV2") Then
+            If Settings.HasSaved("LaunchArgumentIndie") Then
+                Logger.Info("从老 PCL 迁移版本隔离")
+                Settings.Set("LaunchArgumentIndieV2", Settings.Get(Of Integer)("LaunchArgumentIndie"))
+            ElseIf HasIniKey("Setup", "LaunchVersionSelect") Then
+                Logger.Info("从老 PCL 升级，但此前未调整版本隔离，使用老的版本隔离默认值")
+                Settings.Set("LaunchArgumentIndieV2", Settings.GetDefault("LaunchArgumentIndie"))
+            Else
+                Logger.Info("全新的 PCL，使用新的版本隔离默认值")
+                Settings.Set("LaunchArgumentIndieV2", Settings.GetDefault("LaunchArgumentIndieV2"))
+            End If
+        End If
+        '刷新主题
+        ThemeCheckAll(False)
+        ThemeRefresh(Settings.Get(Of Integer)("UiLauncherTheme"))
+        '注册拖拽事件（不能直接加 Handles，否则没用；#6340）
+        [AddHandler](DragDrop.DragEnterEvent, New DragEventHandler(AddressOf HandleDrag), handledEventsToo:=True)
+        [AddHandler](DragDrop.DragOverEvent, New DragEventHandler(AddressOf HandleDrag), handledEventsToo:=True)
+        '加载 UI
+        InitializeComponent()
+        Opacity = 0
+        '开启管理员权限下的文件拖拽
+        If ModWindows.HasAdminRole() Then
+            Static Helper As New DragHelper
+            AddHandler SourceInitialized,
+            Sub()
+                Dim WpfHelper As New WindowInteropHelper(Me)
+                Helper.HwndIntPtrSource = HwndSource.FromHwnd(WpfHelper.Handle)
+                Helper.AddHook()
+            End Sub
+            AddHandler Closing, Sub() Helper.RemoveDragHook()
+            AddHandler Helper.DragDrop, Sub() FileDrag(Helper.DropFilePaths)
+        End If
+        '切换到首页
+        If Not IsNothing(FrmLaunchLeft.Parent) Then FrmLaunchLeft.SetValue(ContentPresenter.ContentProperty, Nothing)
+        If Not IsNothing(FrmLaunchRight.Parent) Then FrmLaunchRight.SetValue(ContentPresenter.ContentProperty, Nothing)
+        PanMainLeft.Child = FrmLaunchLeft
+        PageLeft = FrmLaunchLeft
+        PanMainRight.Child = FrmLaunchRight
+        PageRight = FrmLaunchRight
+        FrmLaunchRight.PageState = MyPageRight.PageStates.ContentStay
+        '模式提醒
+        If BuildType = BuildTypes.Debug Then Hint("[开发者模式] PCL 正以开发者模式运行，这可能会造成严重的性能下降，请务必立即向开发者反馈此问题！", HintType.Red)
+        If ModeDebug Then Hint("[调试模式] PCL 正以调试模式运行，这可能会导致性能下降，若无必要请不要开启！")
+        '尽早执行的加载池
+        McFolderListLoader.Start(0) '为了让下载已存在文件检测可以正常运行，必须跑一次；为了让启动按钮尽快可用，需要尽早执行；为了与 PageLaunchLeft 联动，需要为 0 而不是 GetUuid
+
+        Logger.Info($"第二阶段加载用时：{GetTimeMs() - ApplicationStartTick} ms")
+    End Sub
+    Private Sub FormMain_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
+        ApplicationStartTick = GetTimeMs()
+        Handle = New WindowInteropHelper(Me).Handle
+        '读取设置
+        UpdateBackgroundAndTitleBar()
+        PageSetupUI.HiddenRefresh()
+        PageSetupUI.BackgroundRefresh(False, True)
+        MusicRefreshPlay(False, True)
+        '扩展按钮
+        BtnExtraDownload.ShowCheck = AddressOf BtnExtraDownload_ShowCheck
+        BtnExtraBack.ShowCheck = AddressOf BtnExtraBack_ShowCheck
+        BtnExtraApril.ShowCheck = AddressOf BtnExtraApril_ShowCheck
+        BtnExtraShutdown.ShowCheck = AddressOf BtnExtraShutdown_ShowCheck
+        BtnExtraApril.ShowRefresh()
+        '初始化尺寸改变
+        Dim Resizer As New MyResizer(Me)
+        Resizer.addResizerDown(ResizerB)
+        Resizer.addResizerLeft(ResizerL)
+        Resizer.addResizerLeftDown(ResizerLB)
+        Resizer.addResizerLeftUp(ResizerLT)
+        Resizer.addResizerRight(ResizerR)
+        Resizer.addResizerRightDown(ResizerRB)
+        Resizer.addResizerRightUp(ResizerRT)
+        Resizer.addResizerUp(ResizerT)
+        'PLC 彩蛋
+        If RandomInteger(1, 1000) = 233 Then
+            ShapeTitleLogo.Data = New GeometryConverter().ConvertFromString("M26,29 v-25 h6 a7,7 180 0 1 0,14 h-6 M83,6.5 a10,11.5 180 1 0 0,18 M48,2.5 v24.5 h13.5")
+        End If
+        '加载窗口
+        ThemeRefreshMain()
+        '应用用户自定义的标题栏顺序
+        ApplyTitleBarOrderFromSettings()
+        Try
+            Height = Settings.Get(Of Integer)("WindowHeight")
+            Width = Settings.Get(Of Integer)("WindowWidth")
+        Catch ex As Exception '修复 #2019
+            Logger.Error(ex, "读取窗口默认大小失败", LogBehavior.Toast)
+            Height = MinHeight + 100
+            Width = MinWidth + 100
+        End Try
+        'MinHeight = 50
+        'MinWidth = 50
+        Topmost = False
+        If FrmStart IsNot Nothing Then FrmStart.Close(New TimeSpan(0, 0, 0, 0, 400 / AniSpeed))
+        '更改窗口
+        Top = (GetWPFSize(My.Computer.Screen.WorkingArea.Height) - Height) / 2
+        Left = (GetWPFSize(My.Computer.Screen.WorkingArea.Width) - Width) / 2
+        IsSizeSaveable = True
+        ShowWindowToTop()
+        '调试导航：--goto-server / --goto-setup 等，直接落到指定主页面，
+        '供无鼠标的自动化截图使用（UIA 看不到 PCL 自绘控件）
+        Dim Args = Environment.GetCommandLineArgs()
+        If Args.Contains("--goto-server") Then
+            RunInNewThread(Sub()
+                               RunInUiWait(Sub() PageChange(PageType.Server))
+                               If Args.Contains("--goto-server-wizard") Then
+                                   RunInUiWait(Sub()
+                                                   If FrmServerLeft IsNot Nothing Then FrmServerLeft.SetPage(1)
+                                                   If FrmServerMain IsNot Nothing Then FrmServerMain.ShowSection(1)
+                                               End Sub)
+                               End If
+                           End Sub, "GotoServer")
+        End If
+        Dim HwndSource As Interop.HwndSource = PresentationSource.FromVisual(Me)
+        HwndSource.AddHook(New Interop.HwndSourceHook(AddressOf WndProc))
+        AniStart({
+            AaCode(Sub() AniControlEnabled -= 1, 50),
+            AaOpacity(Me, Settings.Get(Of Integer)("UiLauncherTransparent") / 1000 + 0.4, 250, 100),
+            AaDouble(Sub(i) TransformPos.Y += i, -TransformPos.Y, 600, 100, New AniEaseOutBack(AniEasePower.Weak)),
+            AaDouble(Sub(i) TransformRotate.Angle += i, -TransformRotate.Angle, 500, 100, New AniEaseOutBack(AniEasePower.Weak)),
+            AaCode(
+            Sub()
+                PanBack.RenderTransform = Nothing
+                IsWindowLoadFinished = True
+                Logger.Info($"DPI：{DPI}，系统版本：{Environment.OSVersion.VersionString}，PCL 位置：{PathExe}")
+            End Sub, , True)
+        }, "Form Show")
+        'Timer 启动
+        AniStart()
+        TimerMainStart()
+        '加载池
+        RunInNewThread(
+        Sub()
+            'EULA 提示
+            Const EulaVersion As Integer = 2
+            If Settings.Get(Of Integer)("SystemEulaVersion") < EulaVersion Then
+                Select Case MyMsgBox(
+                    If(Settings.Get(Of Integer)("SystemEulaVersion") = 0,
+                        "在使用 PCL 前，请先阅读用户协议与免责声明。",
+                        $"PCL 的用户协议与免责声明已更新。{vbCrLf}请阅读更新后的用户协议与免责声明。"),
+                        "协议授权", "同意", "拒绝", "查看用户协议与免责声明",
+                        Button3Action:=Sub() OpenWebsite("https://shimo.im/docs/rGrd8pY8xWkt6ryW"))
+                    Case 1
+                        Settings.Set("SystemEulaVersion", EulaVersion)
+                    Case 2
+                        EndProgram(False)
+                End Select
+            End If
+            '启动加载器池
+            Try
+                JavaInit() '延后到同意协议后再执行，避免在初次启动时进行进程操作
+                Thread.Sleep(100)
+                DlClientListMojangLoader.Start(1) 'PCL 会同时根据这里的加载结果决定是否使用官方源进行下载
+                RunCountSub()
+                ServerLoader.Start()
+                RunInNewThread(AddressOf TryClearTaskTemp, "TryClearTaskTemp", ThreadPriority.BelowNormal)
+            Catch ex As Exception
+                Logger.Error(ex, "初始化加载池运行失败")
+            End Try
+            '清理自动更新文件
+            Try
+                FileUtils.Delete(Paths.Base & "PCL\SLATCL.exe")
+            Catch ex As Exception
+                Logger.Warn(ex, "清理自动更新文件失败")
+            End Try
+            '上报
+            Telemetry("启动")
+        End Sub, "初始化", ThreadPriority.Lowest)
+
+        Logger.Info($"第三阶段加载用时：{GetTimeMs() - ApplicationStartTick} ms")
+
+        '液态 Tab 指示器：等布局完成后再定位，否则拿不到标签的真实坐标。
+        '用 Dispatcher 排到布局之后，避免首次显示时指示器在 (0,0) 闪一下。
+        Try
+            Dispatcher.BeginInvoke(New Action(
+                Sub()
+                    Try
+                        RefreshLiquidIndicator()
+                    Catch ex As Exception
+                        Logger.Warn(ex, "初始化液态指示器失败")
+                    End Try
+                End Sub), System.Windows.Threading.DispatcherPriority.Loaded)
+        Catch ex As Exception
+            Logger.Warn(ex, "排队初始化液态指示器失败")
+        End Try
+    End Sub
+    '根据打开次数触发的事件
+    Private Sub RunCountSub()
+        Settings.Set("SystemCount", Settings.Get(Of Integer)("SystemCount") + 1)
+        If BuildType = BuildTypes.Snapshot Then
+            Select Case Settings.Get(Of Integer)("SystemCount")
+                Case 1
+                    MyMsgBox("欢迎使用 PCL 快照版！" & vbCrLf &
+                             "快照版包含尚未在正式版发布的测试性功能，仅用于赞助者本人尝鲜。所以请不要发给其他人或者用于制作整合包哦！" & vbCrLf &
+                             "如果你并非通过赞助或赞助者本人邀请进群获得的本程序，那么可能是有人在违规传播，记得提醒他一下啦。", "快照版使用说明")
+            End Select
+            If Settings.Get(Of Integer)("SystemCount") >= 99 Then
+                If ThemeUnlock(6, False) Then
+                    MyMsgBox("你已经使用了 99 次 PCL 啦，感谢你长期以来的支持！" & vbCrLf &
+                             "隐藏主题 铁杆粉 已解锁！", "提示")
+                End If
+            End If
+        End If
+    End Sub
+    '升级与降级事件
+    Private Sub UpgradeSub(LastVersionCode As Integer)
+        Logger.Info($"版本号从 {LastVersionCode} 升高到 {VersionCode}")
+        Settings.Set("SystemLastVersionReg", VersionCode)
+        '检查有记录的最高版本号
+        Dim HighestVersionCode As Integer
+        Const SettingKey = If(BuildType = BuildTypes.Snapshot, "SystemHighestAlphaVersionReg", "SystemHighestBetaVersionReg")
+        HighestVersionCode = Settings.Get(Of Integer)(SettingKey)
+        If HighestVersionCode < VersionCode Then
+            Settings.Set(SettingKey, VersionCode)
+            Logger.Info($"最高版本号从 {HighestVersionCode} 升高到 {VersionCode}")
+        End If
+        '被移除的窗口设置选项
+        If Settings.Get(Of Integer)("LaunchArgumentWindowType") = 5 Then Settings.Set("LaunchArgumentWindowType", 1)
+        '修改主题设置项名称
+        If HighestVersionCode <= 207 Then
+            Dim UnlockedTheme As New List(Of String) From {"2"}
+            UnlockedTheme.AddRange(New List(Of String)(Settings.Get(Of String)("UiLauncherThemeHide").ToString.Split("|")))
+            UnlockedTheme.AddRange(New List(Of String)(Settings.Get(Of String)("UiLauncherThemeHide2").ToString.Split("|")))
+            Settings.Set("UiLauncherThemeHide2", UnlockedTheme.Distinct.ToList.Join("|"c))
+        End If
+        '重置欧皇彩
+        If LastVersionCode <= 115 AndAlso Settings.Get(Of String)("UiLauncherThemeHide2").ToString.Split("|").Contains("13") Then
+            Dim UnlockedTheme As New List(Of String)(Settings.Get(Of String)("UiLauncherThemeHide2").ToString.Split("|"))
+            UnlockedTheme.Remove("13")
+            Settings.Set("UiLauncherThemeHide2", UnlockedTheme.Join("|"c))
+            MyMsgBox("由于新版 PCL 修改了欧皇彩的解锁方式，你需要重新解锁欧皇彩。" & vbCrLf &
+                     "多谢各位的理解啦！", "重新解锁提醒")
+        End If
+        '重置滑稽彩
+        If LastVersionCode <= 152 AndAlso Settings.Get(Of String)("UiLauncherThemeHide2").ToString.Split("|").Contains("12") Then
+            Dim UnlockedTheme As New List(Of String)(Settings.Get(Of String)("UiLauncherThemeHide2").ToString.Split("|"))
+            UnlockedTheme.Remove("12")
+            Settings.Set("UiLauncherThemeHide2", UnlockedTheme.Join("|"c))
+            MyMsgBox("由于新版 PCL 修改了滑稽彩的解锁方式，你需要重新解锁滑稽彩。" & vbCrLf &
+                     "多谢各位的理解啦！", "重新解锁提醒")
+        End If
+        '移动自定义皮肤
+        If LastVersionCode <= 161 AndAlso FileUtils.Exists(Paths.Base & "PCL\CustomSkin.png") AndAlso Not FileUtils.Exists(Paths.AppDataThenName & "CustomSkin.png") Then
+            FileUtils.Copy(Paths.Base & "PCL\CustomSkin.png", Paths.AppDataThenName & "CustomSkin.png")
+            Logger.Info("已移动离线自定义皮肤 (162)")
+        End If
+        If LastVersionCode <= 263 AndAlso FileUtils.Exists(PathTemp & "CustomSkin.png") AndAlso Not FileUtils.Exists(Paths.AppDataThenName & "CustomSkin.png") Then
+            FileUtils.Copy(PathTemp & "CustomSkin.png", Paths.AppDataThenName & "CustomSkin.png")
+            Logger.Info("已移动离线自定义皮肤 (264)")
+        End If
+        '解除帮助页面的隐藏
+        If LastVersionCode <= 205 Then
+            Settings.Set("UiHiddenOtherHelp", False)
+            Logger.Info("已解除帮助页面的隐藏")
+        End If
+        '单向迁移微软登录结果（#4836）
+        If Not Settings.Get(Of Boolean)("CacheMsV2Migrated") Then
+            Settings.Set("CacheMsV2Migrated", True)
+            Settings.Set("CacheMsV2OAuthRefresh", Settings.Get(Of String)("CacheMsOAuthRefresh"))
+            Settings.Set("CacheMsV2Access", Settings.Get(Of String)("CacheMsAccess"))
+            Settings.Set("CacheMsV2ProfileJson", Settings.Get(Of String)("CacheMsProfileJson"))
+            Settings.Set("CacheMsV2Uuid", Settings.Get(Of String)("CacheMsUuid"))
+            Settings.Set("CacheMsV2Name", Settings.Get(Of String)("CacheMsName"))
+            Logger.Info("已从老版本迁移微软登录结果")
+        End If
+        'Mod 命名设置迁移
+        If Settings.HasSaved("ToolDownloadTranslate") AndAlso Not Settings.HasSaved("ToolDownloadTranslateV2") Then
+            Settings.Set("ToolDownloadTranslateV2", Settings.Get(Of Integer)("ToolDownloadTranslate") + 1)
+            Logger.Info("已从老版本迁移 Mod 命名设置")
+        End If
+        '重置 JVM 参数设置
+        If LastVersionCode <= 381 AndAlso Settings.HasSaved("LaunchAdvanceJvm") AndAlso
+           Settings.Get(Of String)("LaunchAdvanceJvm").ToString.Replace("-XX:+UseG1GC ", "").Replace("-XX:-UseAdaptiveSizePolicy ", "").Trim = Settings.GetDefault("LaunchAdvanceJvm") Then
+            Settings.Reset("LaunchAdvanceJvm")
+            Logger.Info("已重置 JVM 参数设置")
+        End If
+        '输出更新日志
+        If LastVersionCode <= 0 Then Return
+        If HighestVersionCode >= VersionCode Then Return
+        ShowUpdateLog(HighestVersionCode)
+    End Sub
+    Private Sub DowngradeSub(LastVersionCode As Integer)
+        Logger.Info($"版本号从 {LastVersionCode} 降低到 {VersionCode}")
+        Settings.Set("SystemLastVersionReg", VersionCode)
+    End Sub
+
+#End Region
+
+#Region "自定义窗口"
+
+    '关闭
+    Private Sub FormMain_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
+        EndProgram(True)
+        e.Cancel = True
+    End Sub
+    ''' <summary>
+    ''' 正常关闭程序。程序将在执行此方法后约 0.3s 退出。
+    ''' </summary>
+    ''' <param name="SendWarning">是否在还有下载任务未完成时发出警告。</param>
+    Public Sub EndProgram(SendWarning As Boolean)
+        '强行结束下载任务？
+        If HasDownloadingTask() Then
+            If SendWarning AndAlso MyMsgBox("还有下载任务尚未完成，是否确定退出？", "提示", "确定", "取消") = 2 Then Return
+            RunInNewThread(
+            Sub()
+                Logger.Info("正在强行停止任务")
+                For Each Task As LoaderBase In LoaderTaskbar.ToList()
+                    Task.Cancel()
+                Next
+            End Sub, "强行停止下载任务")
+        End If
+        '关闭联机？
+        If FrmLinkMain?.TryExit(Not SendWarning, True) Then Return
+
+        '服务端还在跑？
+        '不处理的话，退出后它变成孤儿进程：玩家看不到，却一直占着端口和内存。
+        If ModServer.IsRunning Then
+            Dim SrvChoice As Integer = 1
+            If SendWarning Then
+                SrvChoice = MyMsgBox($"服务端「{ModServer.RunningVersion?.Name}」还在运行。" & vbCrLf & vbCrLf &
+                                      "退出启动器会一并停止它（会先保存世界）。要继续吗？",
+                                      "服务端仍在运行", "停止并退出", "取消")
+                If SrvChoice = 0 OrElse SrvChoice = 2 Then Return
+            End If
+            Try
+                Logger.Info("退出前停止服务端")
+                ModServer.StopServer()
+            Catch ex As Exception
+                Logger.Warn(ex, "退出前停止服务端失败")
+            End Try
+        End If
+
+        'Java 插件进程也要收掉，否则退出后留在后台
+        Try
+            ModPluginJava.StopAll()
+        Catch ex As Exception
+            Logger.Warn(ex, "退出前停止 Java 插件失败")
+        End Try
+        '关闭
+        RunInUiWait(
+        Sub()
+            IsHitTestVisible = False
+            If PanBack.RenderTransform Is Nothing Then
+                Dim TransformPos As New TranslateTransform(0, 0)
+                Dim TransformRotate As New RotateTransform(0)
+                Dim TransformScale As New ScaleTransform(1, 1)
+                PanBack.RenderTransform = New TransformGroup() With {.Children = New TransformCollection({TransformRotate, TransformPos, TransformScale})}
+                AniStart({
+                    AaOpacity(Me, -Opacity, 140, 40, New AniEaseOutFluent(AniEasePower.Weak)),
+                    AaDouble(
+                    Sub(i)
+                        TransformScale.ScaleX += i
+                        TransformScale.ScaleY += i
+                    End Sub, 0.88 - TransformScale.ScaleX, 180),
+                    AaDouble(Sub(i) TransformPos.Y += i, 20 - TransformPos.Y, 180, 0, New AniEaseOutFluent(AniEasePower.Weak)),
+                    AaDouble(Sub(i) TransformRotate.Angle += i, 0.6 - TransformRotate.Angle, 180, 0, New AniEaseInoutFluent(AniEasePower.Weak)),
+                    AaCode(
+                    Sub()
+                        IsHitTestVisible = False
+                        Top = -10000
+                        ShowInTaskbar = False
+                    End Sub, 210),
+                    AaCode(AddressOf EndProgramForce, 230)
+                }, "Form Close")
+            Else
+                EndProgramForce()
+            End If
+            Logger.Info("收到关闭指令")
+        End Sub)
+    End Sub
+    Private Shared IsLogShown As Boolean = False
+    Public Shared Sub EndProgramForce(Optional ReturnCode As ProcessReturnValues = ProcessReturnValues.Success)
+        On Error Resume Next
+        IsProgramEnding = True
+        AniControlEnabled += 1
+        If IsUpdateWaitingRestart Then UpdateRestart(False)
+        If ReturnCode = ProcessReturnValues.Exception Then
+            If Not IsLogShown Then
+                FeedbackInfo()
+                Logger.Info("请在 https://github.com/Meloong-Git/PCL/issues 提交错误报告，以便于作者解决此问题！")
+                IsLogShown = True
+                StartProcess(Paths.Base & "PCL\Log1.txt")
+            End If
+            Thread.Sleep(500) '防止 PCL 在记事本打开前就被掐掉
+        End If
+        Logger.Info($"程序已退出，返回值：{ReturnCode}")
+        ConfigUtils.SaveAll()
+        Logger.Instance.Flush()
+        If ReturnCode <> ProcessReturnValues.Success Then Environment.Exit(ReturnCode)
+        Process.GetCurrentProcess.Kill()
+    End Sub
+    Private Sub BtnTitleClose_Click(sender As Object, e As RoutedEventArgs) Handles BtnTitleClose.Click
+        EndProgram(True)
+    End Sub
+
+    '移动
+    Private Sub FormDragMove(sender As Object, e As MouseButtonEventArgs) Handles PanTitle.MouseLeftButtonDown, PanMsg.MouseLeftButtonDown
+        On Error Resume Next
+        If sender.IsMouseDirectlyOver Then DragMove()
+    End Sub
+
+    '改变大小
+    ''' <summary>
+    ''' 是否可以向注册表储存尺寸改变信息。以此避免初始化时误储存。
+    ''' </summary>
+    Public IsSizeSaveable As Boolean = False
+    Private Sub FormMain_SizeChanged() Handles Me.SizeChanged, Me.Loaded
+        If IsSizeSaveable Then
+            Settings.Set("WindowHeight", Height)
+            Settings.Set("WindowWidth", Width)
+        End If
+        RectForm.Rect = New Rect(0, 0, BorderForm.ActualWidth, BorderForm.ActualHeight)
+        PanForm.Width = BorderForm.ActualWidth + 0.001
+        PanForm.Height = BorderForm.ActualHeight + 0.001
+        PanMain.Width = PanForm.Width
+        PanMain.Height = Math.Max(0, PanForm.Height - PanTitle.ActualHeight)
+        If WindowState = WindowState.Maximized Then WindowState = WindowState.Normal '修复 #1938
+    End Sub
+
+    '最小化
+    Private Sub BtnTitleMin_Click() Handles BtnTitleMin.Click
+        WindowState = WindowState.Minimized
+    End Sub
+
+    '背景图片与标题栏
+    Public Shared Sub UpdateBackgroundAndTitleBar(Value) '从设置更新
+        If FrmMain Is Nothing OrElse Not FrmMain.IsLoaded Then Return
+        FrmMain.UpdateBackgroundAndTitleBar()
+    End Sub
+    Public Sub UpdateBackgroundAndTitleBar()
+        Logger.Info("从设置更新背景图片与标题栏样式")
+        '背景图片透明度
+        ImgBack.Opacity = Settings.Get(Of Integer)("UiBackgroundOpacity") / 1000
+        '背景图片模糊
+        Dim BlurRadius As Double = Settings.Get(Of Integer)("UiBackgroundBlur") + 1
+        If BlurRadius = 1 Then
+            ImgBack.Effect = Nothing
+        Else
+            ImgBack.Effect = New Effects.BlurEffect With {.Radius = BlurRadius}
+        End If
+        ImgBack.Margin = New Thickness(-BlurRadius / 1.8)
+        '背景图片适应方式
+        Dim BackgroundType As Integer = Settings.Get(Of Integer)("UiBackgroundSuit")
+        If ImgBack.Background IsNot Nothing Then
+            Dim Brush As ImageBrush = CType(ImgBack.Background, ImageBrush)
+            If BackgroundType = 0 Then
+                '智能：当图片较小时平铺，较大时适应
+                If Brush.ImageSource.Width < PanMain.ActualWidth / 2 AndAlso Brush.ImageSource.Height < PanMain.ActualHeight / 2 Then
+                    BackgroundType = 4 '平铺
+                Else
+                    BackgroundType = 2 '适应
+                End If
+            End If
+            Brush.Stretch = Stretch.UniformToFill
+            Brush.TileMode = TileMode.None
+            Brush.Viewport = New Rect(0, 0, 1, 1)
+            Brush.ViewportUnits = BrushMappingMode.RelativeToBoundingBox
+            Brush.AlignmentX = AlignmentX.Center
+            Brush.AlignmentY = AlignmentY.Center
+            Select Case BackgroundType
+                Case 1 '中
+                    Brush.Stretch = Stretch.None
+                Case 3 '拉伸
+                    Brush.Stretch = Stretch.Fill
+                Case 4 '平铺
+                    Brush.Stretch = Stretch.None
+                    Brush.TileMode = TileMode.Tile
+                    Brush.Viewport = New Rect(0, 0, Brush.ImageSource.Width, Brush.ImageSource.Height)
+                    Brush.ViewportUnits = BrushMappingMode.Absolute
+
+                Case 2 '适应
+                Case 5 '左上
+                    Brush.AlignmentX = AlignmentX.Left
+                    Brush.AlignmentY = AlignmentY.Top
+                Case 6 '右上
+                    Brush.AlignmentX = AlignmentX.Right
+                    Brush.AlignmentY = AlignmentY.Top
+                Case 7 '左下
+                    Brush.AlignmentX = AlignmentX.Left
+                    Brush.AlignmentY = AlignmentY.Bottom
+                Case 8 '右下
+                    Brush.AlignmentX = AlignmentX.Right
+                    Brush.AlignmentY = AlignmentY.Bottom
+                Case 9 '左
+                    Brush.AlignmentX = AlignmentX.Left
+                    Brush.AlignmentY = AlignmentY.Center
+                Case 10 '右
+                    Brush.AlignmentX = AlignmentX.Right
+                    Brush.AlignmentY = AlignmentY.Center
+                Case 11 '上
+                    Brush.AlignmentX = AlignmentX.Center
+                    Brush.AlignmentY = AlignmentY.Top
+                Case 12 '下
+                    Brush.AlignmentX = AlignmentX.Center
+                    Brush.AlignmentY = AlignmentY.Bottom
+            End Select
+        End If
+        '标题栏显示类型
+        Select Case Settings.Get(Of Integer)("UiLogoType")
+            Case 0 '无
+                ShapeTitleLogo.Visibility = Visibility.Collapsed
+                LabTitleLogo.Visibility = Visibility.Collapsed
+                ImageTitleLogo.Visibility = Visibility.Collapsed
+                PanTitleBrand.Visibility = Visibility.Visible   'PlainCraftLauncher 品牌始终显示
+                If Not IsNothing(FrmSetupUI) Then 'TODO: 和 FrmSetupUI 解耦
+                    FrmSetupUI.CheckLogoLeft.Visibility = Visibility.Visible
+                    FrmSetupUI.PanLogoText.Visibility = Visibility.Collapsed
+                    FrmSetupUI.PanLogoChange.Visibility = Visibility.Collapsed
+                End If
+            Case 1 '默认
+                ShapeTitleLogo.Visibility = Visibility.Collapsed
+                LabTitleLogo.Visibility = Visibility.Collapsed
+                ImageTitleLogo.Visibility = Visibility.Collapsed
+                PanTitleBrand.Visibility = Visibility.Visible
+                If Not IsNothing(FrmSetupUI) Then
+                    FrmSetupUI.CheckLogoLeft.Visibility = Visibility.Collapsed
+                    FrmSetupUI.PanLogoText.Visibility = Visibility.Collapsed
+                    FrmSetupUI.PanLogoChange.Visibility = Visibility.Collapsed
+                End If
+            Case 2 '文本
+                ShapeTitleLogo.Visibility = Visibility.Collapsed
+                LabTitleLogo.Visibility = Visibility.Collapsed
+                ImageTitleLogo.Visibility = Visibility.Collapsed
+                PanTitleBrand.Visibility = Visibility.Visible
+                If Not IsNothing(FrmSetupUI) Then
+                    FrmSetupUI.CheckLogoLeft.Visibility = Visibility.Collapsed
+                    FrmSetupUI.PanLogoText.Visibility = Visibility.Visible
+                    FrmSetupUI.PanLogoChange.Visibility = Visibility.Collapsed
+                End If
+            Case 3 '图片
+                ShapeTitleLogo.Visibility = Visibility.Collapsed
+                LabTitleLogo.Visibility = Visibility.Collapsed
+                ImageTitleLogo.Visibility = Visibility.Collapsed
+                PanTitleBrand.Visibility = Visibility.Visible
+                If Not IsNothing(FrmSetupUI) Then
+                    FrmSetupUI.CheckLogoLeft.Visibility = Visibility.Collapsed
+                    FrmSetupUI.PanLogoText.Visibility = Visibility.Collapsed
+                    FrmSetupUI.PanLogoChange.Visibility = Visibility.Visible
+                End If
+                Try
+                    ImageTitleLogo.Source = Paths.Base & "PCL\Logo.png"
+                Catch ex As Exception
+                    ImageTitleLogo.Source = Nothing
+                    Logger.Error(ex, "显示标题栏图片失败", LogBehavior.Alert)
+                End Try
+        End Select
+        FrmSetupUI?.CardLogo.TriggerForceResize()
+        '标题栏文本
+        LabTitleLogo.Text = Settings.Get(Of String)("UiLogoText")
+        '标题栏文本是否居左
+        PanTitleMain.ColumnDefinitions(0).Width = New GridLength(If(Settings.Get(Of Boolean)("UiLogoLeft") AndAlso Settings.Get(Of Integer)("UiLogoType") = 0, 0, 1), GridUnitType.Star)
+        '毛玻璃取样要等布局稳定、启动动画结束之后再做。
+        '模糊是几百毫秒的一次性开销，压在启动动画里会直接掉帧，所以延后到窗口显示完再算。
+        QueueGlassMaterial()
+    End Sub
+
+    ''' <summary>
+    ''' 延后到启动动画结束再准备毛玻璃，避免和窗口弹出动画抢主线程。
+    ''' <para>
+    ''' 只在真正需要时算一次：设置里换了背景图会重新走这条路，缓存按图与半径命中，
+    ''' 重复调用不会重复模糊。
+    ''' </para>
+    ''' </summary>
+    Private Sub QueueGlassMaterial()
+        Try
+            AniStart({
+                AaCode(Sub()
+                           If Not IsLoaded Then Return
+                           UpdateGlassMaterial()
+                       End Sub, 700, True)
+            }, "FrmMain Glass")
+        Catch ex As Exception
+            Logger.Warn(ex, "排队毛玻璃材质失败")
+        End Try
+    End Sub
+
+#Region "毛玻璃材质"
+
+    ''' <summary>
+    ''' 侧边栏的模糊半径（屏幕像素）。大表面读作更厚，所以取值明显高于卡片。
+    ''' </summary>
+    Private Const SidebarBlurRadius As Double = 24
+
+    ''' <summary>
+    ''' 刷新侧边栏重材质。
+    ''' <para>
+    ''' 模糊本身是预渲染并缓存的，这里只负责把缓存好的模糊图按当前尺寸和位置重新取样；
+    ''' 没有背景图时整层隐藏，侧边栏回落到原来的主题浅色底，行为与改动前一致。
+    ''' </para>
+    ''' </summary>
+    Private Sub UpdateGlassMaterial()
+        Try
+            If RectLeftGlass Is Nothing Then Return
+            Dim Src As ImageBrush = Nothing
+            If ImgBack IsNot Nothing AndAlso ImgBack.Visibility = Visibility.Visible Then
+                Src = TryCast(ImgBack.Background, ImageBrush)
+            End If
+            If Src Is Nothing OrElse Src.ImageSource Is Nothing Then
+                RectLeftGlass.Visibility = Visibility.Collapsed
+                Return
+            End If
+            RectLeftGlass.Visibility = Visibility.Visible
+            '色调层已由 XAML 提供（跟随主题的 ColorObject8），这里只做模糊取样
+            MyGlass.ApplyBackdropGlass(ImgBack, Src, RectLeftGlass, Nothing, SidebarBlurRadius, Colors.Transparent, 0)
+        Catch ex As Exception
+            Logger.Warn(ex, "刷新毛玻璃材质失败")
+        End Try
+    End Sub
+
+#End Region
+
+#Region "开服页公网访问提示"
+
+    ''' <summary>
+    ''' 把「让外网朋友连进来」这块提示注入开服页的「状态」子页。
+    ''' <para>
+    ''' 这里用 FindName 按名字找容器，不写编译期字段引用：
+    ''' PageServer 的 XAML 由其他人在改，按名字查找可以让这块提示与那些改动互不影响。
+    ''' 注入是幂等的，反复切换页面也只会存在一份。
+    ''' </para>
+    ''' </summary>
+    Private Sub InjectServerPublicAccessHint()
+        Try
+            If FrmServerMain Is Nothing Then Return
+            Dim Host As Panel = TryCast(FrmServerMain.FindName("PanStatusDetail"), Panel)
+            If Host Is Nothing Then Return '那一层还没构建好，下次再试
+            For Each Child In Host.Children
+                If TypeOf Child Is FrameworkElement AndAlso CType(Child, FrameworkElement).Name = "CardPublicAccess" Then Return
+            Next
+            Host.Children.Add(BuildServerPublicAccessCard())
+        Catch ex As Exception
+            Logger.Warn(ex, "注入开服公网访问提示失败")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' 把注入挂到开服页侧边栏的切换事件上。
+    ''' <para>
+    ''' 只在进入开服页时注入是不够的：那时「状态」子页还没被构建出来，
+    ''' 而且用户切到「状态」时 RenderStatus 会重建 PanStatusDetail 的子项。
+    ''' 监听 PageChanged 就能在每次真正切到「状态」时补上，且不必改 PageServer 的文件。
+    ''' </para>
+    ''' </summary>
+    Private Sub HookServerPublicAccessHint()
+        Try
+            If FrmServerLeft Is Nothing Then Return
+            RemoveHandler FrmServerLeft.PageChanged, AddressOf OnServerSectionChanged
+            AddHandler FrmServerLeft.PageChanged, AddressOf OnServerSectionChanged
+            InjectServerPublicAccessHint()
+        Catch ex As Exception
+            Logger.Warn(ex, "挂接开服公网访问提示失败")
+        End Try
+    End Sub
+
+    ''' <summary>开服页左侧栏切换子页：切到「状态」(3) 时补上公网访问提示。</summary>
+    Private Sub OnServerSectionChanged(sender As Object, Section As Integer)
+        If Section <> 3 Then Return
+        'RenderStatus 在 ShowSection 里同步执行完，这里排在它之后补注入
+        RunInUi(
+            Sub()
+                InjectServerPublicAccessHint()
+            End Sub, True)
+    End Sub
+
+    ''' <summary>
+    ''' 构建公网访问提示卡片。
+    ''' <para>
+    ''' 文案只讲用户真正会踩的坑：家庭宽带通常没有公网 IP，
+    ''' 要么在路由器做端口映射，要么用内网穿透。要映射的端口就是服务端端口。
+    ''' </para>
+    ''' </summary>
+    Private Function BuildServerPublicAccessCard() As FrameworkElement
+        Dim Card As New MyCard With {
+            .Title = "让外网朋友连进来",
+            .Margin = New Thickness(0, 0, 0, 12),
+            .Name = "CardPublicAccess"
+        }
+
+        Dim Stack As New StackPanel With {.Margin = New Thickness(24, 40, 24, 20)}
+
+        '一句结论：已判断本机是内网还是公网
+        Dim LabVerdict As New TextBlock With {
+            .TextWrapping = TextWrapping.Wrap,
+            .Text = GlassNetInfo.AddressHint,
+            .FontWeight = FontWeights.SemiBold
+        }
+        LabVerdict.SetResourceReference(TextBlock.ForegroundProperty, "ColorBrush2")
+        Stack.Children.Add(LabVerdict)
+
+        '正文说明
+        Dim LabBody As New TextBlock With {
+            .TextWrapping = TextWrapping.Wrap,
+            .Margin = New Thickness(0, 10, 0, 0),
+            .Text = "家庭宽带通常没有公网 IP，朋友从外网直接填你的地址是连不上的；" & vbCrLf &
+                    "需要二选一：在路由器上把服务端端口映射出去，或者用内网穿透/隧道把端口借出去。"
+        }
+        LabBody.SetResourceReference(TextBlock.ForegroundProperty, "ColorBrushGray2")
+        Stack.Children.Add(LabBody)
+
+        '要映射的端口
+        Dim LabPort As New TextBlock With {
+            .TextWrapping = TextWrapping.Wrap,
+            .Margin = New Thickness(0, 10, 0, 0),
+            .Text = "要映射的端口就是服务端端口（server-port），默认 25565；" & vbCrLf &
+                    "改过端口的话，隧道里也要填同一个数字。"
+        }
+        LabPort.SetResourceReference(TextBlock.ForegroundProperty, "ColorBrushGray2")
+        Stack.Children.Add(LabPort)
+
+        '按钮行
+        Dim BtnRow As New StackPanel With {.Orientation = Orientation.Horizontal, .Margin = New Thickness(0, 16, 0, 0)}
+
+        Dim BtnTunnel As New MyButton With {
+            .Text = "打开隧道服务",
+            .Height = 32,
+            .MinWidth = 120,
+            .ToolTip = "chmlfrp 内网穿透，把本机端口映射到公网。"
+        }
+        CustomEventService.SetEventType(BtnTunnel, CustomEvent.EventType.打开网页)
+        CustomEventService.SetEventData(BtnTunnel, "https://www.chmlfrp.net/")
+        BtnRow.Children.Add(BtnTunnel)
+
+        Dim BtnCopy As New MyButton With {
+            .Text = "复制本机地址",
+            .Height = 32,
+            .MinWidth = 120,
+            .Margin = New Thickness(12, 0, 0, 0)
+        }
+        AddHandler BtnCopy.Click, Sub(s, e) CopyLocalAddress()
+        BtnRow.Children.Add(BtnCopy)
+
+        Stack.Children.Add(BtnRow)
+        Card.Children.Add(Stack)
+        Return Card
+    End Function
+
+    Private Sub CopyLocalAddress()
+        Try
+            Dim Text As String = GlassNetInfo.LocalIPv4
+            If String.IsNullOrEmpty(Text) Then
+                Hint("没有检测到可用的本机 IP", HintType.Red)
+                Return
+            End If
+            Clipboard.SetText(Text)
+            Hint("已复制本机地址：" & Text, HintType.Green)
+        Catch ex As Exception
+            Logger.Warn(ex, "复制本机地址失败")
+        End Try
+    End Sub
+
+#End Region
+
+#End Region
+
+#Region "窗体事件"
+
+    '按键事件
+    Private Sub FormMain_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
+        If e.IsRepeat Then Return
+        '修复按下 Alt 后误认为弹出系统菜单导致的冻结
+        If e.SystemKey = Key.LeftAlt OrElse e.SystemKey = Key.RightAlt Then e.Handled = True
+        '在有弹窗时：回车选择第一个，Esc 选择最后一个
+        If PanMsg.Children.Any Then
+            If e.Key = Key.Enter Then
+                CType(PanMsg.Children(0), Object).Btn1_Click()
+            ElseIf e.Key = Key.Escape OrElse (e.Key = Key.W AndAlso Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) Then
+                Dim Msg As Object = PanMsg.Children(0)
+                If TypeOf Msg IsNot MyMsgInput AndAlso TypeOf Msg IsNot MyMsgSelect AndAlso Msg.Btn3.Visibility = Visibility.Visible Then
+                    Msg.Btn3_Click()
+                ElseIf Msg.Btn2.Visibility = Visibility.Visible Then
+                    Msg.Btn2_Click()
+                Else
+                    Msg.Btn1_Click()
+                End If
+            End If
+            Return
+        End If
+
+        '==========================
+        ' 在没有弹窗时：继续检查……
+        '==========================
+
+        '按 ESC 返回上一级
+        If e.Key = Key.Escape Then TriggerPageBack()
+        '更改隐藏版本可见性
+        If e.Key = Key.F11 AndAlso PageCurrent = FormMain.PageType.InstanceSelect Then
+            FrmSelectRight.ShowHidden = Not FrmSelectRight.ShowHidden
+            LoaderFolderRun(McInstanceListLoader, McFolderSelected, LoaderFolderRunType.ForceRun, MaxDepth:=1, ExtraPath:="versions\")
+            Return
+        End If
+        '更改功能隐藏可见性
+        If e.Key = Key.F12 Then
+            PageSetupUI.HiddenForceShow = Not PageSetupUI.HiddenForceShow
+            If PageSetupUI.HiddenForceShow Then
+                Hint("功能隐藏设置已暂时关闭！", HintType.Green)
+            Else
+                Hint("功能隐藏设置已重新开启！", HintType.Green)
+            End If
+            PageSetupUI.HiddenRefresh()
+            Return
+        End If
+        '按 F5 刷新页面
+        If e.Key = Key.F5 Then
+            If TypeOf PageLeft Is IRefreshable Then CType(PageLeft, IRefreshable).Refresh()
+            If TypeOf PageRight Is IRefreshable Then CType(PageRight, IRefreshable).Refresh()
+            Return
+        End If
+        'Ctrl + w 关闭程序
+        If e.Key = Key.W AndAlso Keyboard.Modifiers.HasFlag(ModifierKeys.Control) Then
+            EndProgram(True)
+            Return
+        End If
+        '调用启动游戏
+        If e.Key = Key.Enter AndAlso PageCurrent = FormMain.PageType.Launch Then
+            If IsAprilEnabled AndAlso Not IsAprilGiveup Then
+                Hint("木大！")
+            Else
+                FrmLaunchLeft.LaunchButtonClick()
+            End If
+        End If
+    End Sub
+    Private Sub FormMain_MouseDown(sender As Object, e As MouseButtonEventArgs) Handles Me.MouseDown
+        '鼠标侧键返回上一级
+        If FrmMain.PanMsg.Children.Count > 0 OrElse WaitingMyMsgBox.Any Then Return '弹窗中（#5513）
+        If e.ChangedButton = MouseButton.XButton1 OrElse e.ChangedButton = MouseButton.XButton2 Then TriggerPageBack()
+    End Sub
+    Private Sub TriggerPageBack()
+        If PageCurrent = PageType.Download AndAlso PageCurrentSub = PageSubType.DownloadInstall AndAlso FrmDownloadInstall.IsInSelectPage Then
+            FrmDownloadInstall.ExitSelectPage()
+        Else
+            PageBack()
+        End If
+    End Sub
+
+    '切回窗口
+    Private Sub FormMain_Activated() Handles Me.Activated
+        '切回窗口时自动刷新
+        Try
+            If PageCurrent = PageType.InstanceSetup AndAlso PageCurrentSub = PageSubType.InstanceMod Then
+                'Mod 管理
+                FrmInstanceMod.ReloadModList()
+            ElseIf PageCurrent = PageType.InstanceSetup AndAlso (PageCurrentSub = PageSubType.InstanceSetup OrElse PageCurrentSub = PageSubType.InstanceExport) Then
+                '更新当前选用的 Java
+                PageInstanceLeft.ReloadCurrentJava()
+            ElseIf PageCurrent = PageType.InstanceSelect Then
+                '版本选择
+                LoaderFolderRun(McInstanceListLoader, McFolderSelected, LoaderFolderRunType.RunOnUpdated, MaxDepth:=1, ExtraPath:="versions\")
+            End If
+        Catch ex As Exception
+            Logger.Error(ex, "切回窗口时出错")
+        End Try
+        '读取剪贴板，自动加入联机房间
+        Return 'TODO: 联机复活赛
+        If PageLinkMain.LinkState <> PageLinkMain.LinkStates.Waiting Then Return '已启动联机
+        If PageCurrent = PageType.Link Then Return '已在联机界面
+        Dim Code = ClipboardGetText() : If Code Is Nothing Then Return '剪贴板无文本
+        If Settings.Get(Of String)("LinkLastAutoJoinInviteCode") = Code Then Return
+        If PageLinkMain.ValidateCodeFormat(Code) IsNot Nothing Then Return '不是邀请码
+        Settings.Set("LinkLastAutoJoinInviteCode", Code)
+        RunInThread(
+        Sub()
+            If MyMsgBox("嘿，是否使用复制的邀请码加入房间？", "加入联机房间", "加入", "取消") = 2 Then Return '防止弹窗阻碍主线程，所以必须放在工作线程
+            RunInUi(
+            Sub()
+                PageLinkMain.Join(Code)
+                ClipboardSet(Nothing, False)
+            End Sub)
+        End Sub)
+    End Sub
+
+    '文件拖放
+    Private Sub HandleDrag(sender As Object, e As DragEventArgs)
+        Try
+            If e.Handled AndAlso (e.Effects <> DragDropEffects.None) Then Return
+            e.Handled = True
+            '缓存
+            Static PrevData As IDataObject, PrevEffects As DragDropEffects
+            If e.Data Is PrevData Then
+                e.Effects = PrevEffects
+                Return
+            End If
+            '确定拖放效果
+            e.Effects = DragDropEffects.None
+            If e.Data.GetDataPresent(DataFormats.Text) Then
+                Dim Str As String = e.Data.GetData(DataFormats.Text)
+                If Str.StartsWithF("authlib-injector:yggdrasil-server:") Then
+                    e.Effects = DragDropEffects.Copy
+                ElseIf Str.StartsWithF("file:///") Then
+                    e.Effects = DragDropEffects.Copy
+                End If
+            ElseIf e.Data.GetDataPresent(DataFormats.FileDrop) Then
+                Dim Files As String() = e.Data.GetData(DataFormats.FileDrop)
+                If Files IsNot Nothing AndAlso Files.Length > 0 Then
+                    e.Effects = DragDropEffects.Link
+                End If
+            End If
+            PrevData = e.Data
+            PrevEffects = e.Effects
+            Logger.Info($"设置拖放类型：{e.Effects}")
+        Catch ex As Exception
+            Logger.Error(ex, "处理拖放时出错")
+        End Try
+    End Sub
+    Private Sub FrmMain_Drop(sender As Object, e As DragEventArgs) Handles Me.Drop
+        Try
+            ShowWindowToTop()
+            If e.Data.GetDataPresent(DataFormats.Text) Then
+                '获取文本
+                Try
+                    Dim Str As String = e.Data.GetData(DataFormats.Text)
+                    Logger.Info($"接受文本拖拽：{Str}")
+                    If Str.StartsWithF("authlib-injector:yggdrasil-server:") Then
+                        'Authlib 拖拽
+                        e.Handled = True
+                        e.Effects = DragDropEffects.Copy
+                        Dim AuthlibServer As String = StringUtils.FormUrlUnescape(Str.Substring("authlib-injector:yggdrasil-server:".Length))
+                        Logger.Info($"Authlib 拖拽：{AuthlibServer}")
+                        If Not String.IsNullOrEmpty(New ValidateHttp().Validate(AuthlibServer)) Then
+                            Hint($"输入的 Authlib 验证服务器不符合网址格式（{AuthlibServer}）！", HintType.Red)
+                            Return
+                        End If
+                        Dim Target = If(PageCurrent = PageType.InstanceSetup, PageInstanceLeft.Instance, McInstanceSelected)
+                        If Target Is Nothing Then
+                            Hint("请先下载游戏，再设置第三方登录！", HintType.Red)
+                            Return
+                        End If
+                        If AuthlibServer = "https://littleskin.cn/api/yggdrasil" Then
+                            'LittleSkin
+                            If MyMsgBox($"是否要在版本 {Target.Name} 中开启 LittleSkin 登录？" & vbCrLf &
+                                        "你可以在 版本设置 → 设置 → 服务器选项 中修改登录方式。", "第三方登录开启确认", "确定", "取消") = 2 Then
+                                Return
+                            End If
+                            Settings.Set("VersionServerLogin", 4, Instance:=Target)
+                            Settings.Set("VersionServerAuthServer", "https://littleskin.cn/api/yggdrasil", Instance:=Target)
+                            Settings.Set("VersionServerAuthRegister", "https://littleskin.cn/auth/register", Instance:=Target)
+                            Settings.Set("VersionServerAuthName", "LittleSkin 登录", Instance:=Target)
+                        Else
+                            '第三方 Authlib 服务器
+                            If MyMsgBox($"是否要在版本 {Target.Name} 中开启第三方登录？" & vbCrLf &
+                                        $"登录服务器：{AuthlibServer}" & vbCrLf & vbCrLf &
+                                        "你可以在 版本设置 → 设置 → 服务器选项 中修改登录方式。", "第三方登录开启确认", "确定", "取消") = 2 Then
+                                Return
+                            End If
+                            Settings.Set("VersionServerLogin", 4, Instance:=Target)
+                            Settings.Set("VersionServerAuthServer", AuthlibServer, Instance:=Target)
+                            Settings.Set("VersionServerAuthRegister", AuthlibServer.Replace("api/yggdrasil", "auth/register"), Instance:=Target)
+                            Settings.Set("VersionServerAuthName", "", Instance:=Target)
+                        End If
+                        If PageCurrent = PageType.InstanceSetup AndAlso PageCurrentSub = PageSubType.InstanceSetup Then
+                            '正在服务器选项页，需要刷新设置项显示
+                            FrmInstanceSetup.Reload()
+                        ElseIf PageCurrent = PageType.Launch Then
+                            '正在主页，需要刷新左边栏
+                            FrmLaunchLeft.RefreshPage(True, False)
+                        End If
+                    ElseIf Str.StartsWithF("file:///") Then
+                        '文件拖拽（例如从浏览器下载窗口拖入）
+                        Dim FilePath = Net.WebUtility.UrlDecode(Str).Substring("file:///".Length).Replace("/", "\")
+                        e.Handled = True
+                        e.Effects = DragDropEffects.Copy
+                        FileDrag(New List(Of String) From {FilePath})
+                    End If
+                Catch ex As Exception
+                    Logger.Warn(ex, "无法接取文本拖拽事件")
+                    Return
+                End Try
+            ElseIf e.Data.GetDataPresent(DataFormats.FileDrop) Then
+                '获取文件并检查
+                Dim FilePathRaw = e.Data.GetData(DataFormats.FileDrop)
+                If FilePathRaw Is Nothing Then '#2690
+                    Hint("请将文件解压后再拖入！", HintType.Red)
+                    Return
+                End If
+                e.Handled = True
+                e.Effects = DragDropEffects.Link
+                FileDrag(CType(FilePathRaw, IEnumerable(Of String)))
+            End If
+        Catch ex As Exception
+            Logger.Error(ex, "接取拖拽事件失败")
+        End Try
+    End Sub
+    Private Sub FileDrag(FilePathList As IEnumerable(Of String))
+        RunInNewThread(
+        Sub()
+            Dim FilePath As String = FilePathList.First
+            Logger.Warn($"接受文件拖拽：{FilePath}{If(FilePathList.Any, $" 等 {FilePathList.Count} 个文件", "")}")
+            '基础检查
+            If DirectoryUtils.Exists(FilePathList.First) AndAlso Not FileUtils.Exists(FilePathList.First) Then
+                Hint("请拖入一个文件，而非文件夹！", HintType.Red)
+                Return
+            ElseIf Not FileUtils.Exists(FilePathList.First) Then
+                Hint("拖入的文件不存在：" & FilePathList.First, HintType.Red)
+                Return
+            End If
+            '多文件拖拽
+            Dim PathList As List(Of String) = FilePathList.ToList()
+            If FilePathList.Count > 1 Then
+                '必须要求全部为 jar 文件
+                For Each File In PathList
+                    If Not {"jar", "litemod", "disabled", "old"}.Contains(File.AfterLast(".").Lower) Then
+                        Hint("一次请只拖入一个文件！", HintType.Red)
+                        Return
+                    End If
+                Next
+            End If
+            '主页
+            Dim Extension As String = FilePath.AfterLast(".").Lower
+            If Extension = "xaml" Then
+                Logger.Info("文件后缀为 XAML，作为主页加载")
+                If FileUtils.Exists(Paths.Base & "PCL\Custom.xaml") Then
+                    If MyMsgBox("已存在一个主页文件，是否要将它覆盖？", "覆盖确认", "覆盖", "取消") = 2 Then
+                        Return
+                    End If
+                End If
+                FileUtils.Copy(FilePath, Paths.Base & "PCL\Custom.xaml")
+                RunInUi(
+                Sub()
+                    Settings.Set("UiCustomType", 1)
+                    FrmLaunchRight.ForceRefresh()
+                    Hint("已加载主页自定义文件！", HintType.Green)
+                End Sub)
+                Return
+            End If
+            '安装 Mod
+            If PageInstanceMod.InstallMods(PathList) Then Return
+            '安装整合包
+            If {"zip", "rar", "mrpack"}.Any(Function(t) t = Extension) Then '部分压缩包是 zip 格式但后缀为 rar，总之试一试
+                Logger.Info("文件为压缩包，尝试作为整合包安装")
+                Try
+                    ModpackInstall(FilePath)
+                    RunInUi(Sub() FrmMain.PageChange(FormMain.PageType.TaskManager))
+                    Return
+                Catch ex As Exception
+                    If ex.IsCanceled Then Return
+                    '安装失败，继续往后尝试
+                End Try
+            End If
+            'RAR 处理
+            If Extension = "rar" Then
+                Hint("PCL 无法处理 rar 格式的压缩包，请在解压后重新压缩为 zip 格式再试！")
+                Return
+            End If
+            '错误报告分析
+            Try
+                Logger.Info("尝试进行错误报告分析")
+                Dim Analyzer As New CrashAnalyzer
+                Analyzer.Import(FilePath)
+                If Not Analyzer.Prepare() Then Exit Try
+                Analyzer.Analyze()
+                Analyzer.Output(True, New List(Of String))
+                Return
+            Catch ex As Exception
+                Logger.Error(ex, "自主错误报告分析失败")
+            End Try
+            '未知操作
+            Hint("PCL 无法确定应当执行的文件拖拽操作……")
+        End Sub, "文件拖拽")
+    End Sub
+
+    '接受到 Windows 窗体事件
+    Public IsSystemTimeChanged As Boolean = False
+    Private Function WndProc(hwnd As IntPtr, msg As Integer, wParam As IntPtr, lParam As IntPtr, ByRef handled As Boolean) As IntPtr
+        If msg = 30 Then
+            Dim NowDate = Date.Now
+            If NowDate.Date = ApplicationOpenTime.Date Then
+                Logger.Info($"系统时间微调为：{NowDate.ToLongDateString} {NowDate.ToLongTimeString}")
+                IsSystemTimeChanged = False
+            Else
+                Logger.Info($"系统时间修改为：{NowDate.ToLongDateString} {NowDate.ToLongTimeString}")
+                IsSystemTimeChanged = True
+            End If
+        ElseIf msg = 400 * 16 + 2 Then
+            Logger.Info($"收到置顶信息：{hwnd.ToInt64}")
+            If Not IsWindowLoadFinished Then
+                Logger.Info("窗口尚未加载完成，忽略置顶请求")
+                Return IntPtr.Zero
+            End If
+            ShowWindowToTop()
+            handled = True
+        End If
+        Return IntPtr.Zero
+    End Function
+
+    '窗口隐藏与置顶
+    Private _Hidden As Boolean = False
+    Public Property Hidden As Boolean
+        Get
+            Return _Hidden
+        End Get
+        Set(value As Boolean)
+            If _Hidden = value Then Return
+            _Hidden = value
+            If value Then
+                '隐藏
+                Left -= 10000
+                ShowInTaskbar = False
+                Visibility = Visibility.Hidden
+                Logger.Info($"窗口已隐藏，位置：({Left},{Top})")
+            Else
+                '取消隐藏
+                If Left < -2000 Then Left += 10000
+                ShowWindowToTop()
+            End If
+        End Set
+    End Property
+    ''' <summary>
+    ''' 把当前窗口拖到最前面。
+    ''' </summary>
+    Public Sub ShowWindowToTop()
+        RunInUi(
+        Sub()
+            '这一坨乱七八糟的，别改，改了指不定就炸了，自己电脑还复现不出来
+            Visibility = Visibility.Visible
+            ShowInTaskbar = True
+            WindowState = WindowState.Normal
+            Hidden = False
+            Topmost = True '偶尔 SetForegroundWindow 失效
+            Topmost = False
+            SetForegroundWindow(Handle)
+            Focus()
+            Logger.Info($"窗口已置顶，位置：({Left}, {Top}), {Width} x {Height}")
+        End Sub)
+    End Sub
+
+#End Region
+
+#Region "切换页面"
+
+    '页面种类与属性
+    ''' <summary>
+    ''' 页面种类。
+    ''' 该枚举在自定义事件中使用，是公开 API 的一部分。
+    ''' </summary>
+    Public Enum PageType
+        ''' <summary>
+        ''' 启动。
+        ''' </summary>
+        Launch = 0
+        ''' <summary>
+        ''' 下载。
+        ''' </summary>
+        Download = 1
+        ''' <summary>
+        ''' 联机。
+        ''' </summary>
+        Link = 2
+        ''' <summary>
+        ''' 设置。
+        ''' </summary>
+        Setup = 3
+        ''' <summary>
+        ''' 更多。
+        ''' </summary>
+        Other = 4
+        ''' <summary>
+        ''' 版本选择。这是一个副页面。
+        ''' </summary>
+        InstanceSelect = 5
+        ''' <summary>
+        ''' 任务管理。这是一个副页面。
+        ''' </summary>
+        TaskManager = 6
+        ''' <summary>
+        ''' 版本设置。这是一个副页面。
+        ''' </summary>
+        InstanceSetup = 7
+        ''' <summary>
+        ''' 社区资源详情。这是一个副页面。
+        ''' </summary>
+        ResourceDetail = 8
+        ''' <summary>
+        ''' 帮助详情。这是一个副页面。
+        ''' </summary>
+        HelpDetail = 9
+
+        Server = 10
+
+        Plugin = 11
+
+
+        LinkLobby = 12
+        PluginHost = 13
+    End Enum
+    ''' <summary>
+    ''' 次要页面种类。其数值必须与 StackPanel 中的下标一致。
+    ''' 该枚举在自定义事件中使用，是公开 API 的一部分。
+    ''' </summary>
+    Public Enum PageSubType
+        [Default] = 0
+        DownloadInstall = 0
+        DownloadMod = 2
+        DownloadPack = 3
+        DownloadDataPack = 4
+        DownloadResourcePack = 5
+        DownloadShader = 6
+        SetupLaunch = 0
+        SetupLink = 1
+        SetupUI = 2
+        SetupSystem = 3
+        LinkMain = 0
+        OtherHelp = 0
+        OtherAbout = 1
+        OtherTest = 2
+        OtherPlugin = 3
+        InstanceOverall = 0
+        InstanceSetup = 1
+        InstanceMod = 2
+        InstanceModDisabled = 3
+        InstanceExport = 4
+    End Enum
+    ''' <summary>
+    ''' 获取次级页面的名称。若并非次级页面则返回空字符串，故可以以此判断是否为次级页面。
+    ''' </summary>
+    Private Function PageNameGet(Stack As PageStackData) As String
+        Select Case Stack.Page
+            Case PageType.InstanceSelect
+                Return "版本选择"
+            Case PageType.TaskManager
+                Return "任务管理"
+            Case PageType.InstanceSetup
+                Return "版本设置 - " & If(PageInstanceLeft.Instance Is Nothing, "未知版本", PageInstanceLeft.Instance.Name)
+            Case PageType.ResourceDetail
+                Return CType(Stack.Additional(0), ResourceProject).TranslatedName
+            Case PageType.HelpDetail
+                Return CType(Stack.Additional(0), HelpEntry).Title
+            Case Else
+                Return ""
+        End Select
+    End Function
+    ''' <summary>
+    ''' 刷新次级页面的名称。
+    ''' </summary>
+    Public Sub PageNameRefresh(Type As PageStackData)
+        LabTitleInner.Text = PageNameGet(Type)
+    End Sub
+    ''' <summary>
+    ''' 刷新次级页面的名称。
+    ''' </summary>
+    Public Sub PageNameRefresh()
+        PageNameRefresh(PageCurrent)
+    End Sub
+
+    '页面状态存储
+    ''' <summary>
+    ''' 当前的主页面。
+    ''' </summary>
+    Public PageCurrent As PageStackData = PageType.Launch
+    ''' <summary>
+    ''' 上一个主页面。
+    ''' </summary>
+    Public PageLast As PageStackData = PageType.Launch
+    ''' <summary>
+    ''' 当前的子页面。
+    ''' </summary>
+    Public ReadOnly Property PageCurrentSub As PageSubType
+        Get
+            Select Case PageCurrent
+                Case PageType.Download
+                    If FrmDownloadLeft Is Nothing Then FrmDownloadLeft = New PageDownloadLeft
+                    Return FrmDownloadLeft.PageID
+                Case PageType.Setup
+                    If FrmSetupLeft Is Nothing Then FrmSetupLeft = New PageSetupLeft
+                    Return FrmSetupLeft.PageID
+                Case PageType.Other
+                    If FrmOtherLeft Is Nothing Then FrmOtherLeft = New PageOtherLeft
+                    Return FrmOtherLeft.PageID
+                Case PageType.InstanceSetup
+                    If FrmInstanceLeft Is Nothing Then FrmInstanceLeft = New PageInstanceLeft
+                    Return FrmInstanceLeft.PageID
+                Case Else
+                    Return 0 '没有子页面
+            End Select
+        End Get
+    End Property
+    ''' <summary>
+    ''' 上层页面的编号堆栈，用于返回。
+    ''' </summary>
+    Public PageStack As New List(Of PageStackData)
+    Public Class PageStackData
+
+        Public Page As PageType
+        Public Additional As Object
+
+        Public Overrides Function Equals(other As Object) As Boolean
+            If other Is Nothing Then Return False
+            If TypeOf other Is PageStackData Then
+                Dim PageOther As PageStackData = other
+                If Page <> PageOther.Page Then Return False
+                If Additional Is Nothing Then
+                    Return PageOther.Additional Is Nothing
+                Else
+                    Return PageOther.Additional IsNot Nothing AndAlso Additional.Equals(PageOther.Additional)
+                End If
+            ElseIf TypeOf other Is Integer Then
+                If Page <> other Then Return False
+                Return Additional Is Nothing
+            Else
+                Return False
+            End If
+        End Function
+        Public Shared Operator =(left As PageStackData, right As PageStackData) As Boolean
+            Return EqualityComparer(Of PageStackData).Default.Equals(left, right)
+        End Operator
+        Public Shared Operator <>(left As PageStackData, right As PageStackData) As Boolean
+            Return Not left = right
+        End Operator
+        Public Shared Widening Operator CType(Value As PageType) As PageStackData
+            Return New PageStackData With {.Page = Value}
+        End Operator
+        Public Shared Widening Operator CType(Value As PageStackData) As PageType
+            Return Value.Page
+        End Operator
+
+    End Class
+    Public PageLeft As MyPageLeft, PageRight As MyPageRight
+
+    '引发实际页面切换的入口
+    Private IsChangingPage As Boolean = False
+
+    ''' <summary>
+    ''' 切换页面，并引起对应选择 UI 的改变。
+    ''' </summary>
+    Public Sub PageChange(Stack As PageStackData, Optional SubType As PageSubType = PageSubType.Default)
+        If PageNameGet(Stack) = "" Then
+            '切换到主页面
+            PageChangeExit()
+            IsChangingPage = True '防止下面的勾选直接触发了 PageChangeActual
+            '导航栏按钮按 Tag 查找，不能用 PageType 枚举值当索引：
+            'Server=10 / Plugin=11 / LinkLobby=12 已超出 Children 的数量，会抛异常
+            Dim TitleButton As MyRadioButton = Nothing
+            'PageType 枚举值（Server=10/Plugin=11）与标题栏 Tag（5/6）不一致，
+            '直接 CInt(Stack.Page) 匹配会永远找不到 → SetChecked 跳过 → 互斥失效 → 双高亮。
+            '这里显式按页映射到标题栏 Tag。
+            Dim WantedTag As Integer = -1
+            Select Case Stack.Page
+                Case PageType.Launch : WantedTag = 0
+                Case PageType.Download : WantedTag = 1
+                Case PageType.Link : WantedTag = 2
+                Case PageType.Setup : WantedTag = 3
+                Case PageType.Other : WantedTag = 4
+                Case PageType.Server : WantedTag = 5
+                Case PageType.Plugin : WantedTag = 6
+            End Select
+            If WantedTag >= 0 Then
+                For Each Child In PanTitleSelect.Children
+                    Dim Rb = TryCast(Child, MyRadioButton)
+                    If Rb IsNot Nothing AndAlso Val(Rb.Tag) = WantedTag Then
+                        TitleButton = Rb
+                        Exit For
+                    End If
+                Next
+            End If
+            If TitleButton Is Nothing Then
+                '没有对应按钮的页面（如联机大厅、开服）：退回「联机」或「更多」入口
+                For Each Child In PanTitleSelect.Children
+                    Dim Rb = TryCast(Child, MyRadioButton)
+                    If Rb IsNot Nothing AndAlso Val(Rb.Tag) = 2 Then
+                        TitleButton = Rb
+                        Exit For
+                    End If
+                Next
+            End If
+            If TitleButton IsNot Nothing Then TitleButton.SetChecked(True, True, PageNameGet(PageCurrent) = "")
+            IsChangingPage = False
+            Select Case Stack.Page
+                Case PageType.Download
+                    If FrmDownloadLeft Is Nothing Then FrmDownloadLeft = New PageDownloadLeft
+                    CType(FrmDownloadLeft.PanItem.Children(SubType), MyListItem).SetChecked(True, True, Stack = PageCurrent)
+                Case PageType.Setup
+                    If FrmSetupLeft Is Nothing Then FrmSetupLeft = New PageSetupLeft
+                    CType(FrmSetupLeft.PanItem.Children(SubType), MyListItem).SetChecked(True, True, Stack = PageCurrent)
+                Case PageType.Other
+                    If FrmOtherLeft Is Nothing Then FrmOtherLeft = New PageOtherLeft
+                    CType(FrmOtherLeft.PanItem.Children(SubType), MyListItem).SetChecked(True, True, Stack = PageCurrent)
+            End Select
+            PageChangeActual(Stack, SubType)
+        Else
+            '切换到次页面
+            Select Case Stack.Page
+                Case PageType.InstanceSetup
+                    If FrmInstanceLeft Is Nothing Then FrmInstanceLeft = New PageInstanceLeft
+                    CType(FrmInstanceLeft.PanItem.Children(SubType), MyListItem).SetChecked(True, True, Stack = PageCurrent)
+            End Select
+            PageChangeActual(Stack, SubType)
+        End If
+    End Sub
+    ''' <summary>
+    ''' 通过点击导航栏改变页面。
+    ''' </summary>
+    Private Sub BtnTitleSelect_Click(sender As MyRadioButton, raiseByMouse As Boolean) Handles BtnTitleSelect0.Check, BtnTitleSelect1.Check, BtnTitleSelect2.Check, BtnTitleSelect3.Check, BtnTitleSelect4.Check, BtnTitleSelect5.Check, BtnTitleSelect6.Check
+        If IsChangingPage Then Return
+        '按 Tag 显式映射到 PageType。
+        '不能直接 Val(Tag)：Tag 6 会撞上 PageType.TaskManager(6)，
+        'Tag 5 会撞上 PageType.InstanceSelect(5)，导致点了跳到别的页面。
+        Dim Target As PageType
+        Select Case Val(sender.Tag)
+            Case 0 : Target = PageType.Launch
+            Case 1 : Target = PageType.Download
+            Case 2 : Target = PageType.Link
+            Case 3 : Target = PageType.Setup
+            Case 4 : Target = PageType.Other
+            Case 5 : Target = PageType.Server
+            Case 6 : Target = PageType.Plugin
+            Case Else : Return
+        End Select
+        '液态指示器：把背景滑到被点的标签下面
+        MoveLiquidIndicator(sender)
+        PageChangeActual(Target)
+    End Sub
+
+    ''' <summary>
+    ''' 把液态指示器移到指定标签的位置。
+    ''' <para>
+    ''' 依据 spt「Liquid Tab Indicator」：文字与命中区域完全不动，
+    ''' 只有独立背景层移动，所以标签点击手感不变。
+    ''' </para>
+    ''' </summary>
+    ''' <param name="Animate">首次定位传 False。</param>
+    Public Sub MoveLiquidIndicator(Target As MyRadioButton, Optional Animate As Boolean = True)
+        Try
+            If LiquidIndicator Is Nothing OrElse Target Is Nothing Then Return
+            If PanTitleSelect Is Nothing Then Return
+
+            '标签可能还没完成布局，此时拿不到坐标，跳过
+            If Target.ActualWidth <= 0 Then Return
+
+            '把标签坐标换算到指示器所在的坐标系。
+            '用 TranslatePoint 而不是读 Margin/Left：PanTitleSelect 自身有 Margin="12,0"，
+            '直接算会整体偏 12px。
+            Dim Pt As Point = Target.TranslatePoint(New Point(0, 0), LiquidIndicator)
+
+            '坐标明显不合理说明布局还没完成，跳过这次，等下次刷新
+            If Pt.Y < -40 OrElse Pt.Y > 40 Then Return
+
+            'MyRadioButton 是 Auto 宽度，但视觉上要给一点呼吸空间，
+            '否则指示器只有文字那么宽，看起来像一条线。
+            Dim W As Double = Math.Max(Target.ActualWidth, 64)
+            '居中对齐：宽度补足的部分左右均分
+            Dim L As Double = Pt.X - (W - Target.ActualWidth) / 2
+
+            LiquidIndicator.MoveTo(L, W, Animate)
+        Catch ex As Exception
+            Logger.Warn(ex, "移动液态指示器失败")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' 按当前选中的标签刷新指示器位置（首次显示时调用）。
+    ''' </summary>
+    Private Sub RefreshLiquidIndicator()
+        Try
+            Dim Cur As MyRadioButton = Nothing
+            Select Case PageCurrent
+                Case PageType.Launch : Cur = BtnTitleSelect0
+                Case PageType.Download : Cur = BtnTitleSelect1
+                Case PageType.Link : Cur = BtnTitleSelect2
+                Case PageType.Setup : Cur = BtnTitleSelect3
+                Case PageType.Other : Cur = BtnTitleSelect4
+                Case PageType.Server : Cur = BtnTitleSelect5
+                Case PageType.Plugin : Cur = BtnTitleSelect6
+            End Select
+            If Cur IsNot Nothing Then MoveLiquidIndicator(Cur, False)
+        Catch ex As Exception
+            Logger.Warn(ex, "刷新液态指示器失败")
+        End Try
+    End Sub
+    ''' <summary>
+    ''' 通过点击返回按钮或手动触发返回来改变页面。
+    ''' </summary>
+    Public Sub PageBack() Handles BtnTitleInner.Click
+        If PageStack.Any() Then
+            PageChangeActual(PageStack(0))
+        Else
+            PageChange(PageType.Launch)
+        End If
+    End Sub
+
+    '实际处理页面切换
+    ''' <summary>
+    ''' 切换现有页面的实际方法。
+    ''' </summary>
+    Private Sub PageChangeActual(Stack As PageStackData, Optional SubType As PageSubType = -1)
+        If PageCurrent = Stack AndAlso (PageCurrentSub = SubType OrElse SubType = -1) Then Return
+        AniControlEnabled += 1
+        Try
+
+#Region "子页面处理"
+            Dim PageName As String = PageNameGet(Stack)
+            If PageName = "" Then
+                '即将切换到一个顶级页面
+                PageChangeExit()
+            Else
+                '即将切换到一个子页面
+                If PageStack.Any Then
+                    '子页面 → 另一个子页面，更新
+                    AniStart({
+                        AaOpacity(LabTitleInner, -LabTitleInner.Opacity, 130),
+                        AaCode(Sub() LabTitleInner.Text = PageName,, True),
+                        AaOpacity(LabTitleInner, 1, 150, 30)
+                    }, "FrmMain Titlebar SubLayer")
+                    If PageStack.Contains(Stack) Then
+                        '返回到更上层的子页面
+                        Do While PageStack.Contains(Stack)
+                            PageStack.RemoveAt(0)
+                        Loop
+                    Else
+                        '进入更深层的子页面
+                        PageStack.Insert(0, PageCurrent)
+                    End If
+                Else
+                    '主页面 → 子页面，进入
+                    PanTitleInner.Visibility = Visibility.Visible
+                    PanTitleMain.IsHitTestVisible = False
+                    PanTitleInner.IsHitTestVisible = True
+                    PageNameRefresh(Stack)
+                    '用 AaTranslateX 而不是 AaX：后者改的是 Margin，每帧都要重新测量布局；
+                    'TranslateTransform 走 GPU 合成，不触发布局，动画更顺。
+                    EnsureTitleTranslate(PanTitleMain)
+                    EnsureTitleTranslate(PanTitleInner)
+                    AniStart({
+                        AaOpacity(PanTitleMain, -PanTitleMain.Opacity, 150),
+                        AaTranslateX(PanTitleMain, 12, 150,, New AniEaseInFluent(AniEasePower.Weak)),
+                        AaOpacity(PanTitleInner, 1 - PanTitleInner.Opacity, 150, 200),
+                        AaTranslateX(PanTitleInner, 0, 350, 200, New AniEaseOutBack),
+                        AaCode(Sub() PanTitleMain.Visibility = Visibility.Collapsed,, True)
+                    }, "FrmMain Titlebar FirstLayer")
+                    PageStack.Insert(0, PageCurrent)
+                End If
+            End If
+#End Region
+
+#Region "实际更改页面框架 UI"
+            PageLast = PageCurrent
+            PageCurrent = Stack
+            Select Case Stack.Page
+                Case PageType.Launch '启动
+                    PageChangeAnim(FrmLaunchLeft, FrmLaunchRight)
+                Case PageType.Download '下载
+                    If FrmDownloadLeft Is Nothing Then FrmDownloadLeft = New PageDownloadLeft
+                    'PageGet 方法会在未设置 SubType 时指定默认值，并建立相关页面的实例
+                    PageChangeAnim(FrmDownloadLeft, FrmDownloadLeft.PageGet(SubType))
+                Case PageType.Link '联机
+                    If FrmLinkLeft Is Nothing Then FrmLinkLeft = New PageLinkLeft
+                      '保留上次的子页选择，不要每次进联机都跳回「创建房间」
+                    If FrmLinkMain Is Nothing Then FrmLinkMain = New PageLinkMain
+                    FrmLinkMain.ShowSection(0)
+                    PageChangeAnim(FrmLinkLeft, FrmLinkMain)
+                Case PageType.Setup '设置
+                    If FrmSetupLeft Is Nothing Then FrmSetupLeft = New PageSetupLeft
+                    PageChangeAnim(FrmSetupLeft, FrmSetupLeft.PageGet(SubType))
+                Case PageType.Other '更多
+                    If FrmOtherLeft Is Nothing Then FrmOtherLeft = New PageOtherLeft
+                    PageChangeAnim(FrmOtherLeft, FrmOtherLeft.PageGet(SubType))
+                Case PageType.InstanceSelect '版本选择
+                    If FrmSelectLeft Is Nothing Then FrmSelectLeft = New PageSelectLeft
+                    If FrmSelectRight Is Nothing Then FrmSelectRight = New PageSelectRight
+                    PageChangeAnim(FrmSelectLeft, FrmSelectRight)
+                Case PageType.TaskManager '任务管理
+                    If FrmSpeedLeft Is Nothing Then FrmSpeedLeft = New PageSpeedLeft
+                    If FrmSpeedRight Is Nothing Then FrmSpeedRight = New PageSpeedRight
+                    PageChangeAnim(FrmSpeedLeft, FrmSpeedRight)
+                Case PageType.InstanceSetup '版本设置
+                    If FrmInstanceLeft Is Nothing Then FrmInstanceLeft = New PageInstanceLeft
+                    PageChangeAnim(FrmInstanceLeft, FrmInstanceLeft.PageGet(SubType))
+                Case PageType.ResourceDetail '社区资源详情
+                    If FrmDownloadResourceDetail Is Nothing Then FrmDownloadResourceDetail = New PageDownloadResourceDetail
+                    PageChangeAnim(New MyPageLeft, FrmDownloadResourceDetail)
+                Case PageType.HelpDetail '帮助详情
+                    PageChangeAnim(New MyPageLeft, Stack.Additional(1))
+                Case PageType.LinkLobby '联机大厅
+                    If FrmLinkLobby Is Nothing Then FrmLinkLobby = New PageLinkLobby
+                    PageChangeAnim(New MyPageLeft, FrmLinkLobby)
+                Case PageType.Server '开服
+                    If FrmServerMain Is Nothing Then FrmServerMain = New PageServerMain
+                    If FrmServerLeft Is Nothing Then FrmServerLeft = New PageServerLeft
+                    FrmServerLeft.PageID = 0
+                    FrmServerMain.ShowSection(0)
+                    HookServerPublicAccessHint()
+                    PageChangeAnim(FrmServerLeft, FrmServerMain)
+                Case PageType.PluginHost '插件自带页面（标题栏入口）
+                    If FrmPluginHost Is Nothing Then FrmPluginHost = New PagePluginHost
+                    PageChangeAnim(New MyPageLeft, FrmPluginHost)
+                Case PageType.Plugin '插件（独立顶级页面）
+                    If FrmPluginMain Is Nothing Then FrmPluginMain = New PageOtherPlugin
+                    If FrmPluginLeft Is Nothing Then FrmPluginLeft = New PagePluginLeft
+                    FrmPluginLeft.PageID = 0
+                    FrmPluginMain.ShowSection(0)
+                    PageChangeAnim(FrmPluginLeft, FrmPluginMain)
+            End Select
+#End Region
+
+#Region "设置为最新状态"
+            BtnExtraDownload.ShowRefresh()
+            BtnExtraApril.ShowRefresh()
+#End Region
+
+            Logger.Info($"切换主要页面：{Stack.Page}, {SubType}")
+        Catch ex As Exception
+            Logger.Error(ex, $"切换主要页面失败（ID {PageCurrent.Page}）")
+        Finally
+            AniControlEnabled -= 1
+        End Try
+    End Sub
+    Private Sub PageChangeAnim(TargetLeft As FrameworkElement, TargetRight As FrameworkElement)
+        AniStop("FrmMain LeftChange")
+        AniStop("PageLeft PageChange") '停止左边栏变更导致的右页面切换动画，防止它与本动画一起触发多次 PageOnEnter
+        AniControlEnabled += 1
+        '清除新页面关联性
+        If TargetLeft.Parent IsNot Nothing Then TargetLeft.SetValue(ContentPresenter.ContentProperty, Nothing)
+        If TargetRight IsNot Nothing AndAlso TargetRight.Parent IsNot Nothing Then TargetRight.SetValue(ContentPresenter.ContentProperty, Nothing)
+        PageLeft = TargetLeft
+        PageRight = TargetRight
+        '触发页面通用动画
+        CType(PanMainLeft.Child, MyPageLeft).TriggerHideAnimation()
+        CType(PanMainRight.Child, MyPageRight).PageOnExit()
+        AniControlEnabled -= 1
+        '执行动画
+        AniStart({
+            AaCode(
+            Sub()
+                AniControlEnabled += 1
+                '把新页面添加进容器
+                PanMainLeft.Child = PageLeft
+                PageLeft.Opacity = 0
+                PanMainLeft.Background = Nothing
+                AniControlEnabled -= 1
+                RunInUi(Sub() PanMainLeft_Resize(PanMainLeft.ActualWidth), True)
+            End Sub, 110),
+            AaCode(
+            Sub()
+                '延迟触发页面通用动画，以使得在 Loaded 事件中加载的控件得以处理
+                PageLeft.Opacity = 1
+                PageLeft.TriggerShowAnimation()
+            End Sub, 30, True)
+        }, "FrmMain PageChangeLeft")
+        AniStart({
+            AaCode(
+            Sub()
+                AniControlEnabled += 1
+                CType(PanMainRight.Child, MyPageRight).PageOnForceExit()
+                '把新页面添加进容器
+                PanMainRight.Child = PageRight
+                PageRight.Opacity = 0
+                PanMainRight.Background = Nothing
+                AniControlEnabled -= 1
+                RunInUi(Sub() BtnExtraBack.ShowRefresh(), True)
+            End Sub, 110),
+            AaCode(
+            Sub()
+                '延迟触发页面通用动画，以使得在 Loaded 事件中加载的控件得以处理
+                PageRight.Opacity = 1
+                PageRight.PageOnEnter()
+            End Sub, 30, True)
+        }, "FrmMain PageChangeRight")
+    End Sub
+    ''' <summary>
+    ''' 确保标题栏元素使用 TranslateTransform，并把 X 归零。
+    '''
+    ''' 标题栏切换原本用 AaX 动 Margin：每帧都会触发 Measure/Arrange，
+    ''' 页面越复杂掉帧越明显。换成 RenderTransform 后动画在合成线程完成，
+    ''' 不再引起布局。
+    ''' </summary>
+    Private Sub EnsureTitleTranslate(Obj As FrameworkElement)
+        If Obj Is Nothing Then Return
+        If Obj.RenderTransform Is Nothing OrElse TypeOf Obj.RenderTransform IsNot TranslateTransform Then
+            Obj.RenderTransform = New TranslateTransform(0, 0)
+        Else
+            CType(Obj.RenderTransform, TranslateTransform).X = 0
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' 退出子界面。
+    ''' </summary>
+    Private Sub PageChangeExit()
+        If PageStack.Any Then
+            '子页面 → 主页面，退出
+            PanTitleMain.Visibility = Visibility.Visible
+            PanTitleMain.IsHitTestVisible = True
+            PanTitleInner.IsHitTestVisible = False
+            '同进入时：用 TranslateTransform 避免每帧重排。
+            EnsureTitleTranslate(PanTitleInner)
+            EnsureTitleTranslate(PanTitleMain)
+            AniStart({
+                AaOpacity(PanTitleInner, -PanTitleInner.Opacity, 150),
+                AaTranslateX(PanTitleInner, -18, 150,, New AniEaseInFluent),
+                AaOpacity(PanTitleMain, 1 - PanTitleMain.Opacity, 150, 200),
+                AaTranslateX(PanTitleMain, 0, 350, 200, New AniEaseOutBack(AniEasePower.Weak)),
+                AaCode(Sub() PanTitleInner.Visibility = Visibility.Collapsed,, True)
+            }, "FrmMain Titlebar FirstLayer")
+            PageStack.Clear()
+        Else
+            '主页面 → 主页面，无事发生
+        End If
+    End Sub
+
+    '左边栏改变
+    Private Sub PanMainLeft_SizeChanged(sender As Object, e As SizeChangedEventArgs) Handles PanMainLeft.SizeChanged
+        If Not e.WidthChanged Then Return
+        PanMainLeft_Resize(e.NewSize.Width)
+    End Sub
+    ''' <summary>
+    ''' 侧边栏背景相对容器的右侧收缩量。
+    ''' <para>
+    ''' 之前背景宽度 == 容器宽度，于是侧边栏的白底一直贴到内容区边缘，
+    ''' 无论给 PanItem 加多少右 Margin，看到的都是"没有间距"——
+    ''' 因为多出来的留白也被白底填满了。
+    ''' 这里让背景比容器窄 20px，留白才真正变成视觉间隙。
+    ''' </para>
+    ''' </summary>
+    Private Const LeftBackgroundGap As Double = 20
+
+    Private Sub PanMainLeft_Resize(NewWidth As Double)
+        '背景宽度 = 容器宽度 - 右侧留白
+        Dim BgWidth As Double = If(NewWidth > 0, Math.Max(0, NewWidth - LeftBackgroundGap), 0)
+        Dim Delta As Double = BgWidth - RectLeftBackground.Width
+
+        '浮点误差会让 Delta 变成 -4.3E-14 这种极小数，
+        '直接喂给 AaWidth 会得到负的 Width，WPF 抛
+        '“不是属性 Width 的有效值”。这里先吸附到 0.1 精度，
+        '并确认目标宽度非负，避免动画崩溃。
+        BgWidth = Math.Round(Math.Max(0, BgWidth), 1)
+        Delta = Math.Round(BgWidth - RectLeftBackground.Width, 1)
+
+        If Math.Abs(Delta) >= 0.1 AndAlso AniControlEnabled = 0 Then
+            If PanMain.Opacity < 0.1 Then PanMainLeft.IsHitTestVisible = False '避免左边栏指向背景未能完美覆盖左边栏
+            If NewWidth > 0 Then
+                '宽度足够，显示
+                AniStart({
+                    AaWidth(RectLeftBackground, Delta, 180,, New AniEaseOutFluent(AniEasePower.ExtraStrong)),
+                    AaOpacity(RectLeftShadow, 1 - RectLeftShadow.Opacity, 180),
+                    AaCode(Sub() PanMainLeft.IsHitTestVisible = True, 150)
+                }, "FrmMain LeftChange", True)
+            Else
+                '宽度不足，隐藏
+                AniStart({
+                    AaWidth(RectLeftBackground, -Math.Round(RectLeftBackground.Width, 1), 180,, New AniEaseOutFluent),
+                    AaOpacity(RectLeftShadow, -RectLeftShadow.Opacity, 180),
+                    AaCode(Sub() PanMainLeft.IsHitTestVisible = True, 150)
+                }, "FrmMain LeftChange", True)
+            End If
+        Else
+            RectLeftBackground.Width = BgWidth
+            PanMainLeft.IsHitTestVisible = True
+            AniStop("FrmMain LeftChange")
+        End If
+    End Sub
+
+#End Region
+
+#Region "控件拖动"
+
+    '在时钟中调用，使得即使鼠标在窗口外松开，也可以释放控件
+    Public Sub DragTick()
+        If DragControl Is Nothing Then Return
+        If Not Mouse.LeftButton = MouseButtonState.Pressed Then
+            DragStop()
+        End If
+    End Sub
+    '在鼠标移动时调用，以改变 Slider 位置
+    Public Sub DragDoing() Handles PanBack.MouseMove
+        If DragControl Is Nothing Then Return
+        If Mouse.LeftButton = MouseButtonState.Pressed Then
+            DragControl.DragDoing()
+        Else
+            DragStop()
+        End If
+    End Sub
+    Public Sub DragStop()
+        '存在其他线程调用的可能性，因此需要确保在 UI 线程运行
+        RunInUi(Sub()
+                    If DragControl Is Nothing Then Return
+                    Dim Control = DragControl
+                    DragControl = Nothing
+                    Control.DragStop() '控件会在该事件中判断 DragControl，所以得放在后面
+                End Sub)
+    End Sub
+
+#End Region
+
+#Region "附加按钮"
+
+    '音乐
+    Private Sub BtnExtraMusic_Click(sender As Object, e As EventArgs) Handles BtnExtraMusic.Click
+        MusicControlPause()
+    End Sub
+    Private Sub BtnExtraMusic_RightClick(sender As Object, e As EventArgs) Handles BtnExtraMusic.RightClick
+        MusicControlNext()
+    End Sub
+
+    '任务管理
+    Private Sub BtnExtraDownload_Click(sender As Object, e As EventArgs) Handles BtnExtraDownload.Click
+        PageChange(PageType.TaskManager)
+    End Sub
+    Private Function BtnExtraDownload_ShowCheck() As Boolean
+        Return HasDownloadingTask() AndAlso Not PageCurrent = PageType.TaskManager
+    End Function
+
+    '投降
+    Public Sub AprilGiveup() Handles BtnExtraApril.Click
+        If IsAprilEnabled AndAlso Not IsAprilGiveup Then
+            Hint("=D", HintType.Green)
+            IsAprilGiveup = True
+            FrmLaunchLeft.AprilScaleTrans.ScaleX = 1
+            FrmLaunchLeft.AprilScaleTrans.ScaleY = 1
+            BtnExtraApril.ShowRefresh()
+        End If
+    End Sub
+    Public Function BtnExtraApril_ShowCheck() As Boolean
+        Return IsAprilEnabled AndAlso Not IsAprilGiveup AndAlso PageCurrent = PageType.Launch
+    End Function
+
+    '关闭 Minecraft
+    Public Sub BtnExtraShutdown_Click() Handles BtnExtraShutdown.Click
+        Try
+            If McLaunchLoaderReal IsNot Nothing Then McLaunchLoaderReal.Cancel()
+            For Each Watcher In McWatcherList
+                Watcher.Kill()
+            Next
+            Hint("已关闭运行中的 Minecraft！", HintType.Green)
+        Catch ex As Exception
+            Logger.Error(ex, "强制关闭所有 Minecraft 失败")
+        End Try
+    End Sub
+    Public Function BtnExtraShutdown_ShowCheck() As Boolean
+        Return HasRunningMinecraft
+    End Function
+
+    ''' <summary>
+    ''' 返回顶部。
+    ''' </summary>
+    Public Sub BackToTop() Handles BtnExtraBack.Click
+        Dim RealScroll As MyScrollViewer = BtnExtraBack_GetRealChild()
+        If RealScroll IsNot Nothing Then
+            RealScroll.PerformVerticalOffsetDelta(-RealScroll.VerticalOffset)
+        Else
+            Logger.Error("无法返回顶部，未找到合适的 RealScroll", LogBehavior.Toast)
+        End If
+    End Sub
+    Private Function BtnExtraBack_ShowCheck() As Boolean
+        Dim RealScroll As MyScrollViewer = BtnExtraBack_GetRealChild()
+        Return RealScroll IsNot Nothing AndAlso RealScroll.Visibility = Visibility.Visible AndAlso RealScroll.VerticalOffset > Height + If(BtnExtraBack.Show, 0, 700)
+    End Function
+    Private Function BtnExtraBack_GetRealChild() As MyScrollViewer
+        If PanMainRight.Child Is Nothing OrElse TypeOf PanMainRight.Child IsNot MyPageRight Then Return Nothing
+        Dim Page As MyPageRight = PanMainRight.Child
+        Return Page.FindName(Page.PanScroll)
+    End Function
+
+#End Region
+
+    '愚人节鼠标位置
+    Public lastMouseArg As MouseEventArgs = Nothing
+    Private Sub FormMain_MouseMove(sender As Object, e As MouseEventArgs) Handles Me.MouseMove
+        lastMouseArg = e
+    End Sub
+
+
+    '==== 插件标题栏入口 ====
+
+    ''' <summary>已动态插入的标题栏按钮，按插件 Id 索引，便于重建时清理。</summary>
+    Private PluginTitleButtons As New List(Of MyRadioButton)
+
+    ''' <summary>
+    ''' 按当前已启用插件重建标题栏入口。
+    ''' <para>
+    ''' 每个声明了 <c>titlebar: true</c> 的插件都会得到一个按钮，点进去显示它自己的页面。
+    ''' 这是插件给启动器「加新功能」的方式，不需要改启动器源码。
+    ''' </para>
+    ''' </summary>
+    Public Sub RebuildPluginTitleButtons()
+        Try
+            '先移除旧的
+            For Each B In PluginTitleButtons
+                Try
+                    RemoveHandler B.Check, AddressOf PluginTitle_Check
+                    PanTitleSelect.Children.Remove(B)
+                Catch
+                End Try
+            Next
+            PluginTitleButtons.Clear()
+
+            Dim Hosts = ModPlugin.Plugins.Where(Function(p) p IsNot Nothing AndAlso
+                                                          p.IsUsable AndAlso
+                                                          p.Enabled AndAlso
+                                                          p.Manifest IsNot Nothing AndAlso
+                                                          p.Manifest.Titlebar).ToList()
+            If Hosts.Count = 0 Then Return
+
+            For Each Plg In Hosts
+                Try
+                    Dim Btn As New MyRadioButton With {
+                        .Text = If(String.IsNullOrWhiteSpace(Plg.Manifest.TitlebarText), Plg.Manifest.Name, Plg.Manifest.TitlebarText),
+                        .Tag = Plg,
+                        .Margin = New Thickness(5, 0, 5, 0),
+                        .Padding = New Thickness(2, 0, 2, 0),
+                        .LogoScale = 0.9
+                    }
+                    '有自定义图标就用，没有给个通用方块
+                    Dim IconData = Plg.Manifest.TitlebarIcon
+                    If String.IsNullOrWhiteSpace(IconData) Then
+                        IconData = "M448 64h128v320h320v128H576v320H448V512H128V384h320z"
+                    End If
+                    Try
+                        Btn.Logo = IconData
+                    Catch ex As Exception
+                        Logger.Warn(ex, $"插件图标无效：{Plg.DisplayName}")
+                    End Try
+                    AddHandler Btn.Check, AddressOf PluginTitle_Check
+                    PanTitleSelect.Children.Add(Btn)
+                    PluginTitleButtons.Add(Btn)
+                Catch ex As Exception
+                    Logger.Warn(ex, $"添加插件标题栏按钮失败：{Plg?.DisplayName}")
+                End Try
+            Next
+            Logger.Info($"标题栏已加入 {PluginTitleButtons.Count} 个插件入口")
+        Catch ex As Exception
+            Logger.Error(ex, "重建插件标题栏失败")
+        End Try
+    End Sub
+
+    ''' <summary>点插件标题栏按钮：切到插件宿主页并指定目标。</summary>
+    Private Sub PluginTitle_Check(sender As Object, raiseByMouse As Boolean)
+        Try
+            If IsChangingPage Then Return
+            Dim Btn = TryCast(sender, MyRadioButton)
+            Dim Plg = TryCast(Btn?.Tag, ModPlugin.PluginEntry)
+            If Plg Is Nothing Then Return
+
+            If FrmPluginHost Is Nothing Then FrmPluginHost = New PagePluginHost
+            '换插件时清掉缓存键，强制重新加载内容
+            FrmPluginHost.Target = Plg
+            PageChangeActual(PageType.PluginHost)
+        Catch ex As Exception
+            Logger.Error(ex, "切换到插件页面失败")
+            Hint($"打开插件失败：{ex.Message}", HintType.Red)
+        End Try
+    End Sub
+
+
+    ''' <summary>按设置重排标题栏标签顺序（设置页可调）。</summary>
+    Private Sub ApplyTitleBarOrderFromSettings()
+        Try
+            '防御：设置项没注册时直接返回，不要抛异常打断启动
+            If Not Settings.Entries.ContainsKey("TitleBarOrder") Then Return
+            Dim Raw = TryCast(Settings.Get(Of String)("TitleBarOrder"), String)
+            If String.IsNullOrWhiteSpace(Raw) Then Return
+            Dim Order = Newtonsoft.Json.JsonConvert.DeserializeObject(Of List(Of Integer))(Raw)
+            If Order Is Nothing OrElse Order.Count = 0 Then Return
+
+            '收集现有按钮（按 Tag 索引）
+            Dim ByTag As New Dictionary(Of Integer, MyRadioButton)
+            Dim Others As New List(Of UIElement)
+            For Each Item In PanTitleSelect.Children
+                Dim Radio = TryCast(Item, MyRadioButton)
+                If Radio IsNot Nothing Then
+                    ByTag(CInt(Val(Radio.Tag))) = Radio
+                Else
+                    Others.Add(Item)
+                End If
+            Next
+
+            '全部摘下来
+            PanTitleSelect.Children.Clear()
+
+            '按用户顺序放回
+            For Each WantedTag In Order
+                If ByTag.ContainsKey(WantedTag) Then
+                    PanTitleSelect.Children.Add(ByTag(WantedTag))
+                    ByTag.Remove(WantedTag)
+                End If
+            Next
+            '剩下没排到的接在后面（保证不丢控件）
+            For Each Leftover In ByTag.Values
+                PanTitleSelect.Children.Add(Leftover)
+            Next
+            For Each OtherItem In Others
+                PanTitleSelect.Children.Add(OtherItem)
+            Next
+
+            Logger.Info($"标题栏顺序已应用：{Raw}")
+        Catch ex As Exception
+            Logger.Warn(ex, "应用标题栏顺序失败（保持默认）")
+        End Try
+    End Sub
+
+End Class

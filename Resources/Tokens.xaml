@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PCL 设计令牌（Design Tokens）
+  ============================================================
+  依据 spt「先定状态，再做动画」与 apple-design「成体系的尺寸」：
+  所有视觉尺寸必须来自这套令牌，不允许页面里写裸数字。
+
+  体系：
+    间距  4 的倍数（4 / 8 / 12 / 16 / 20 / 24 / 32）
+    圆角  4（小控件）/ 8（卡片）/ 12（大卡片）/ 999（胶囊）
+    字号  11（辅助）/ 12（正文）/ 14（强调）/ 16（小标题）/ 20（标题）
+
+  用法：
+    <Border CornerRadius="{StaticResource Radius.Card}" />
+    <TextBlock FontSize="{StaticResource Font.Body}" />
+    <StackPanel Margin="{StaticResource Gap.Card}" />
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ========== 圆角 ========== -->
+    <CornerRadius x:Key="Radius.Small">4</CornerRadius>
+    <CornerRadius x:Key="Radius.Card">8</CornerRadius>
+    <CornerRadius x:Key="Radius.CardLarge">12</CornerRadius>
+    <CornerRadius x:Key="Radius.Pill">999</CornerRadius>
+
+    <!-- ========== 字号 ========== -->
+    <sys:Double x:Key="Font.Caption">11</sys:Double>
+    <sys:Double x:Key="Font.Body">12</sys:Double>
+    <sys:Double x:Key="Font.Emphasis">14</sys:Double>
+    <sys:Double x:Key="Font.Subtitle">16</sys:Double>
+    <sys:Double x:Key="Font.Title">20</sys:Double>
+
+    <!-- ========== 间距（Thickness） ========== -->
+    <!-- 卡片之间：统一 20 -->
+    <Thickness x:Key="Gap.Card">0,0,0,20</Thickness>
+    <!-- 卡片内部四周 -->
+    <Thickness x:Key="Gap.CardInner">25,40,25,24</Thickness>
+    <!-- 元素之间：12 -->
+    <Thickness x:Key="Gap.Item">0,12,0,0</Thickness>
+    <!-- 紧凑：8 -->
+    <Thickness x:Key="Gap.Tight">0,8,0,0</Thickness>
+    <!-- 分块：16 -->
+    <Thickness x:Key="Gap.Block">0,16,0,0</Thickness>
+
+    <!-- ========== 控件高度 ========== -->
+    <sys:Double x:Key="Size.Button">32</sys:Double>
+    <sys:Double x:Key="Size.ButtonSmall">28</sys:Double>
+    <sys:Double x:Key="Size.Input">32</sys:Double>
+    <sys:Double x:Key="Size.ListItem">36</sys:Double>
+
+    <!-- ========== 动画时长（毫秒） ========== -->
+    <sys:Int32 x:Key="Motion.Micro">150</sys:Int32>
+    <sys:Int32 x:Key="Motion.Enter">220</sys:Int32>
+    <sys:Int32 x:Key="Motion.Exit">180</sys:Int32>
+    <sys:Int32 x:Key="Motion.Layout">300</sys:Int32>
+
+</ResourceDictionary>
