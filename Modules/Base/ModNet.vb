@@ -842,19 +842,37 @@ Retry:
                 Dim StartPosition As Long, StartSource As NetSource = Nothing
                 Dim Th As Thread, ThreadInfo As NetThread
                 '条件检测
-                '★ 关键：检查与自增必须在同一个锁里完成。
-                '原来的写法是「SyncLock 内检查 → 释放锁 → 才 Interlocked.Increment」，
-                '中间有窗口期：并发时几十个调用同时通过检查再一起自增，
-                '实际线程数会远超 NetTaskThreadLimit。
-                '实测下载 5000 个文件时创建了 5000+ 个线程（线程号到 5344），
-                '系统句柄耗尽 → 下载速度归零、界面完全卡死。
+                '历史：最初是「SyncLock 内检查 → 释放锁 → 才 Interlocked.Increment」，
+                '检查与自增之间有窗口，实测下载 5000 个文件时创建了 5000+ 个线程
+                '（线程号到 5344），系统句柄耗尽 → 下载速度归零、界面完全卡死。
+                '后来把自增移进了锁里，但那把锁仍是每个 NetFile 实例各自的（见下方 ★）。
+                '★ 名额必须跨文件全局原子预留，不能只靠 SyncLock LockSource。
+                'LockSource 是每个 NetFile 实例各自的锁，而 NetTaskThreadCount 是模块级全局计数：
+                '不同文件各自在自己的锁里检查同一个全局变量，检查与自增之间仍有窗口，
+                '并发时几十个调用能同时通过检查。实测上限设成 4（实际上限 5）时
+                '并发下载线程仍达到 153 个，把「可控线程数」这个设置彻底架空。
+                '改用 CAS：只有把计数从旧值原子改成「旧值+1」的那一个调用才拿到名额，
+                '任何时刻并发都不超限，且不需要跨对象加锁（避免死锁）。
+                Dim Reserved As Boolean = False
+                Do
+                    Dim Current = NetTaskThreadCount
+                    If Current >= NetTaskThreadLimit Then Return Nothing
+                    If Interlocked.CompareExchange(NetTaskThreadCount, Current + 1, Current) = Current Then Reserved = True
+                Loop While Not Reserved
+                ThreadSlotTaken = True
                 SyncLock LockSource
-                    If NetTaskThreadCount >= NetTaskThreadLimit OrElse Not HasAvailableSource() OrElse
-                        (IsNoSplit AndAlso Threads IsNot Nothing AndAlso Threads.State <> NetState.Canceled) Then Return Nothing
-                    If State >= NetState.Merging OrElse State = NetState.WaitingToCheck Then Return Nothing
-                    '在锁内预留一个线程名额，后续任何提前 Return 都要撤销
-                    Interlocked.Increment(NetTaskThreadCount)
-                    ThreadSlotTaken = True
+                    '名额已抢到，这里任何提前退出都必须先退还，否则上限被永久吃掉
+                    If Not HasAvailableSource() OrElse
+                        (IsNoSplit AndAlso Threads IsNot Nothing AndAlso Threads.State <> NetState.Canceled) Then
+                        Interlocked.Decrement(NetTaskThreadCount)
+                        ThreadSlotTaken = False
+                        Return Nothing
+                    End If
+                    If State >= NetState.Merging OrElse State = NetState.WaitingToCheck Then
+                        Interlocked.Decrement(NetTaskThreadCount)
+                        ThreadSlotTaken = False
+                        Return Nothing
+                    End If
                     SyncLock LockState
                         If State < NetState.Connecting Then State = NetState.Connecting
                     End SyncLock
