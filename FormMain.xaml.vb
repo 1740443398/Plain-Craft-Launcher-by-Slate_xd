@@ -774,18 +774,24 @@ Public Class FormMain
             End Select
         End If
         '标题栏显示类型
+        '历史 bug：四个分支都把 LabTitleLogo / ImageTitleLogo 设成 Collapsed，
+        '又都强制显示 PanTitleBrand，结果玩家选「文本」或「图片」标题栏毫无变化 —— 
+        '设置项形同虚设。实测 UiLogoType=2/3 时顶栏始终还是 SLATCL 品牌。
+        '现在按语义真正切换，并在内容不可用时回退到品牌，避免出现空白标题栏。
+        Dim LogoText = Settings.Get(Of String)("UiLogoText")
+        Dim LogoImage = Paths.Base & "PCL\Logo.png"
         Select Case Settings.Get(Of Integer)("UiLogoType")
-            Case 0 '无
+            Case 0 '无：不显示任何 Logo，只留品牌
                 ShapeTitleLogo.Visibility = Visibility.Collapsed
                 LabTitleLogo.Visibility = Visibility.Collapsed
                 ImageTitleLogo.Visibility = Visibility.Collapsed
-                PanTitleBrand.Visibility = Visibility.Visible   'PlainCraftLauncher 品牌始终显示
+                PanTitleBrand.Visibility = Visibility.Visible
                 If Not IsNothing(FrmSetupUI) Then 'TODO: 和 FrmSetupUI 解耦
                     FrmSetupUI.CheckLogoLeft.Visibility = Visibility.Visible
                     FrmSetupUI.PanLogoText.Visibility = Visibility.Collapsed
                     FrmSetupUI.PanLogoChange.Visibility = Visibility.Collapsed
                 End If
-            Case 1 '默认
+            Case 1 '默认：SLATCL 品牌
                 ShapeTitleLogo.Visibility = Visibility.Collapsed
                 LabTitleLogo.Visibility = Visibility.Collapsed
                 ImageTitleLogo.Visibility = Visibility.Collapsed
@@ -795,36 +801,52 @@ Public Class FormMain
                     FrmSetupUI.PanLogoText.Visibility = Visibility.Collapsed
                     FrmSetupUI.PanLogoChange.Visibility = Visibility.Collapsed
                 End If
-            Case 2 '文本
+            Case 2 '文本：显示玩家自定义的文字
                 ShapeTitleLogo.Visibility = Visibility.Collapsed
-                LabTitleLogo.Visibility = Visibility.Collapsed
                 ImageTitleLogo.Visibility = Visibility.Collapsed
-                PanTitleBrand.Visibility = Visibility.Visible
+                If LogoText = "" Then
+                    '还没填文字就先显示品牌，不然标题栏会空一块
+                    LabTitleLogo.Visibility = Visibility.Collapsed
+                    PanTitleBrand.Visibility = Visibility.Visible
+                Else
+                    LabTitleLogo.Visibility = Visibility.Visible
+                    PanTitleBrand.Visibility = Visibility.Collapsed
+                End If
                 If Not IsNothing(FrmSetupUI) Then
                     FrmSetupUI.CheckLogoLeft.Visibility = Visibility.Collapsed
                     FrmSetupUI.PanLogoText.Visibility = Visibility.Visible
                     FrmSetupUI.PanLogoChange.Visibility = Visibility.Collapsed
                 End If
-            Case 3 '图片
+            Case 3 '图片：读 PCL\Logo.png
                 ShapeTitleLogo.Visibility = Visibility.Collapsed
                 LabTitleLogo.Visibility = Visibility.Collapsed
-                ImageTitleLogo.Visibility = Visibility.Collapsed
-                PanTitleBrand.Visibility = Visibility.Visible
+                Dim ImageOk As Boolean = False
+                Try
+                    If FileUtils.Exists(LogoImage) Then
+                        ImageTitleLogo.Source = LogoImage
+                        ImageOk = True
+                    End If
+                Catch ex As Exception
+                    '玩家没放图片是常态，不该弹错误框打断使用；降级成日志
+                    Logger.Warn(ex, "读取标题栏图片失败")
+                End Try
+                If ImageOk Then
+                    ImageTitleLogo.Visibility = Visibility.Visible
+                    PanTitleBrand.Visibility = Visibility.Collapsed
+                Else
+                    ImageTitleLogo.Visibility = Visibility.Collapsed
+                    ImageTitleLogo.Source = Nothing
+                    PanTitleBrand.Visibility = Visibility.Visible
+                End If
                 If Not IsNothing(FrmSetupUI) Then
                     FrmSetupUI.CheckLogoLeft.Visibility = Visibility.Collapsed
                     FrmSetupUI.PanLogoText.Visibility = Visibility.Collapsed
                     FrmSetupUI.PanLogoChange.Visibility = Visibility.Visible
                 End If
-                Try
-                    ImageTitleLogo.Source = Paths.Base & "PCL\Logo.png"
-                Catch ex As Exception
-                    ImageTitleLogo.Source = Nothing
-                    Logger.Error(ex, "显示标题栏图片失败", LogBehavior.Alert)
-                End Try
         End Select
         FrmSetupUI?.CardLogo.TriggerForceResize()
-        '标题栏文本
-        LabTitleLogo.Text = Settings.Get(Of String)("UiLogoText")
+        '标题栏文本（已在上面分支里按 LogoText 处理）
+        LabTitleLogo.Text = LogoText
         '标题栏文本是否居左
         PanTitleMain.ColumnDefinitions(0).Width = New GridLength(If(Settings.Get(Of Boolean)("UiLogoLeft") AndAlso Settings.Get(Of Integer)("UiLogoType") = 0, 0, 1), GridUnitType.Star)
         '毛玻璃取样要等布局稳定、启动动画结束之后再做。
