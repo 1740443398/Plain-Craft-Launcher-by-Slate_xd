@@ -1682,15 +1682,30 @@ FinishExCatch:
             End If
             Dim Type = TypeIndexes.MaxBy(Function(kv) kv.Item2).FolderName.TrimStart("\"c)
             '根据类别进行查找
+            '候选文件校验。命中率优化前有三个坑，都会让「本地明明有同一文件」被判成不命中，
+            '于是重复走网络下载 —— 这正是玩家体感「缓存命中率低」的直接原因：
+            '1) Checker.ActualSize = -1 表示元数据没给大小（不少库/资源项 size 就是 0）。
+            '   原来仍拿 -1 去比真实文件长度，必然不等，带 Hash 的候选永远配不上。
+            '2) Sizes 缓存把「文件不存在」记成 -1 且永不过期。同一进程里该文件稍后被
+            '   另一个实例下载好，这里仍然读到 -1，再也不会考虑它。
+            '3) 大小一致就认为命中，没校验 Hash —— 大小对了但内容被截断/替换时会留下坏文件。
+            '现在：大小未知就跳过大小闸门、只信 Hash；只缓存有效大小；有 Hash 就必校验。
             Static Sizes As New ConcurrentDictionary(Of String, Long)
             Static CheckCandidate As Func(Of String, FileChecker, Boolean) =
-            Function(Candidate, Checker)
-                '快速进行大小校验
-                Dim Length = Sizes.GetOrAdd(Candidate, Function(c) If(FileUtils.Exists(c), FileUtils.GetInfo(c).Length, -1))
-                If Checker.ActualSize <> Length Then Return False
-                '进一步进行 Hash 校验
-                Return Checker.Check(Candidate) Is Nothing
-            End Function
+                Function(Candidate, Checker)
+                    Dim Length As Long = -1
+                    If Not Sizes.TryGetValue(Candidate, Length) Then
+                        Dim Info = FileUtils.GetInfo(Candidate)
+                        '文件不存在时不要写缓存：它可能在本次会话稍后被下载出来
+                        If Not Info.Exists Then Return False
+                        Length = Info.Length
+                        Sizes(Candidate) = Length
+                    End If
+                    If Length <= 0 Then Return False
+                    '元数据没给大小时不要拿 -1 去比较，直接靠 Hash 判定
+                    If Checker.ActualSize >= 0 AndAlso Checker.ActualSize <> Length Then Return False
+                    Return Checker.Check(Candidate) Is Nothing
+                End Function
             Select Case Type
                 Case "assets\", "libraries\"
                     'assets/libraries：查找 MC 文件夹下的相同路径

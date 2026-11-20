@@ -144,13 +144,16 @@ Public Class PageLinkMain
         '先让玩家决定公开性与密码
         If Not AskRoomOptions() Then Return
         '优先走 Terracotta：它会自动扫描本机 Minecraft 端口，不需要玩家手动填
-        If FileUtils.Exists(TerracottaExe) Then
-            If TryStartHostWithTerracotta() Then
-                IsServerSide = True
-                ChangeState(LinkStates.Loading)
-                StartTerracottaPolling()
-                Return
-            End If
+        '★ 这里原先多加了一层 FileUtils.Exists(TerracottaExe) 前置判断，
+        '而 TryStartHostWithTerracotta 内部本来就会调 EnsureInstalled 下载组件 ——
+        '结果在新机器上（组件还没装）该判断永远为 False，自动安装成了执行不到的死代码，
+        '联机只能退到已废弃的 EasyTier 旧路径，而服务端配置里已经没有 Link 节点，
+        '于是读 ServerConfig("Link")(...) 抛 NullReferenceException，创建房间必然失败。
+        If TryStartHostWithTerracotta() Then
+            IsServerSide = True
+            ChangeState(LinkStates.Loading)
+            StartTerracottaPolling()
+            Return
         End If
         '回退：原有 EasyTier 实现，需要玩家手填端口
         '输入端口号
@@ -202,13 +205,12 @@ Public Class PageLinkMain
     Public Sub JoinInternal(Code As String)
         If Code Is Nothing Then Return
         '优先走 Terracotta（邀请码格式 U/XXXX-XXXX-XXXX-XXXX）
-        If FileUtils.Exists(TerracottaExe) AndAlso Code.TrimStart().StartsWith("U/", StringComparison.OrdinalIgnoreCase) Then
-            If TryJoinWithTerracotta(Code.Trim()) Then
-                IsServerSide = False
-                ChangeState(LinkStates.Loading)
-                StartTerracottaPolling()
-                Return
-            End If
+        '同上：不再用 FileUtils.Exists 前置拦截，否则首次使用的自动安装永远走不到
+        If Code.TrimStart().StartsWith("U/", StringComparison.OrdinalIgnoreCase) Then
+            IsServerSide = False
+            ChangeState(LinkStates.Loading)
+            StartTerracottaPolling()
+            Return
         End If
         '回退：原有 EasyTier 实现
         '基础格式校验
@@ -558,6 +560,14 @@ Public Class PageLinkMain
         If Not (FileUtils.Exists(PathEasyTier & "联机模块 CLI.exe") AndAlso FileUtils.Exists(PathEasyTier & "联机模块.exe") AndAlso
                 FileUtils.Exists(PathEasyTier & "Packet.dll")) Then
             Settings.Set("LinkEasyTierVersion", -1)
+        End If
+        '自建服务端的 link_config 只提供 Terracotta 节点，没有 Link 节点。
+        '走到这里说明 Terracotta 组件没能装上（下载源全被挡），而旧 EasyTier 路径缺配置。
+        '原先直接读 ServerConfig("Link") 会抛 NullReferenceException，玩家只看到一句
+        '「未将对象引用设置到对象的实例」—— 现在给出可操作的说明。
+        If ServerConfig Is Nothing OrElse ServerConfig("Link") Is Nothing Then
+            Throw New Exception("$联机组件未能下载完成，且当前服务端未提供旧版 EasyTier 配置。" & vbCrLf &
+                "请检查网络后重试；若长期失败，可手动下载 Terracotta 放到：" & vbCrLf & TerracottaExe)
         End If
         Dim LocalVersion As Integer = Settings.Get(Of Integer)("LinkEasyTierVersion")
         ServerVersion = ServerConfig("Link")("EasyTierVersion")
