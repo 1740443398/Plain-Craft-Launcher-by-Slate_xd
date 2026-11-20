@@ -267,10 +267,38 @@ Public Module ModUpdate
                     Return
                 End If
 
-                Logger.Info($"开始下载更新：{Result.LatestVersion}，共 {Urls.Count} 个地址")
                 Dim Ok As Boolean = False
                 Dim LastError As String = ""
+                '★ 缓存命中：程序每次启动都会检查更新，同一个更新包会被反复请求。
+                '原先这里无条件下载 —— 实测同一份 8 MB 的 1.0.0 包在多次启动里被重下 4 次。
+                '现在先看临时目录里是否已有校验通过的同一版本包，命中就直接复用。
+                If FileUtils.Exists(TempFile) Then
+                    Try
+                        Dim CachedInfo = FileUtils.GetInfo(TempFile)
+                        '更新包不低于 1 MB，太小的肯定是错误页
+                        If CachedInfo.Exists AndAlso CachedInfo.Length > 1024 * 1024 Then
+                            Dim CacheOk As Boolean
+                            If String.IsNullOrWhiteSpace(Result.Sha256) Then
+                                '服务端没给哈希时没法强校验；至少确认是个像样的 PE 文件
+                                CacheOk = IsPortableExecutable(TempFile)
+                            Else
+                                CacheOk = String.Equals(GetBytesSha256(FileUtils.ReadAsBytes(TempFile)),
+                                                        Result.Sha256.Trim(), StringComparison.OrdinalIgnoreCase)
+                            End If
+                            If CacheOk Then
+                                Ok = True
+                                Logger.Info($"更新包已在本地且校验通过，跳过下载：{TempFile}（{CachedInfo.Length \ 1024} KB）")
+                            Else
+                                Logger.Info("本地更新包校验不通过，将重新下载")
+                            End If
+                        End If
+                    Catch exCache As Exception
+                        Logger.Warn(exCache, "检查本地更新包失败，将重新下载")
+                    End Try
+                End If
+                If Not Ok Then Logger.Info($"开始下载更新：{Result.LatestVersion}，共 {Urls.Count} 个地址")
                 For Each Url In Urls
+                    If Ok Then Exit For
                     Try
                         RunInUi(Sub() Hint($"正在下载更新（{Result.LatestVersion}）……", HintType.Blue))
                         Logger.Info($"尝试下载：{Url}")
@@ -382,6 +410,21 @@ Public Module ModUpdate
     End Function
 
     ''' <summary>计算字节流的 SHA-256（小写十六进制）。</summary>
+    ''' <summary>粗判是不是 Windows 可执行文件（PE 头）。用于无哈希时的缓存校验。</summary>
+    Private Function IsPortableExecutable(P As String) As Boolean
+        Try
+            If Not FileUtils.Exists(P) Then Return False
+            Using Fs = FileUtils.ReadAsStream(P)
+                If Fs.Length < 1024 * 1024 Then Return False
+                Dim Head(1) As Byte
+                Fs.Read(Head, 0, 2)
+                Return Head(0) = &H4D AndAlso Head(1) = &H5A 'MZ
+            End Using
+        Catch
+            Return False
+        End Try
+    End Function
+
     Private Function GetBytesSha256(Data As Byte()) As String
         Try
             Using Sha As Security.Cryptography.SHA256 = Security.Cryptography.SHA256.Create()
