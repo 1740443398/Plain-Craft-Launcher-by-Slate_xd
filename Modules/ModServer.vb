@@ -214,6 +214,13 @@ Partial Public Module ModServer
             DirectoryUtils.Create(V.Dir)
             Dim Json = Newtonsoft.Json.JsonConvert.SerializeObject(V, Newtonsoft.Json.Formatting.Indented)
             FileUtils.Write(V.ConfigPath, Json, Encoding.UTF8)
+
+            '★ 关键：pcl-server.json 只是我们自己的镜像，Minecraft 服务端实际读的是 server.properties。
+            '原来只写 JSON 不写 properties，玩家在「配置」里改 MOTD / 最大人数 / 视距 全部不生效，
+            '而且下次启动时 WriteProperties 又会拿 JSON 里的旧值覆盖回去 —— 看起来像是「设置没保存」。
+            '这里补上同步。若 properties 还不存在（尚未首次启动过），写一份完整默认值，
+            '这样配置页改的东西在第一次启动时就是对的。
+            WriteProperties(V)
         Catch ex As Exception
             Logger.Error(ex, "保存服务端配置失败")
         End Try
@@ -355,7 +362,7 @@ Partial Public Module ModServer
             FileUtils.Write(V.EulaPath,
                 "# 由 PCL 生成。同意 Minecraft EULA 后才能开服。" & vbCrLf &
                 "# https://aka.ms/MinecraftEULA" & vbCrLf &
-                "eula=true" & vbCrLf, Encoding.UTF8)
+                "eula=true" & vbCrLf, New UTF8Encoding(False))
             V.EulaAccepted = True
             SaveConfig(V)
             Logger.Info($"已同意 EULA：{V.Name}")
@@ -532,33 +539,115 @@ Partial Public Module ModServer
     End Function
 
     ''' <summary>找可用的 Java（1.17+ 服务器需要 Java 17）。</summary>
-    Public Function FindJava() As String
+    ''' <summary>
+    ''' 找可用的 Java。
+    ''' <para>
+    ''' 必须按服务端要求的版本挑：Minecraft 26.1+ 要求 Java 25，
+    ''' 用 Java 21 启动只会打印一句 requires Java 25 然后立刻退出，
+    ''' 玩家体感就是「点了启动没反应」。
+    ''' </para>
+    ''' </summary>
+    ''' <param name="MinJavaMajor">最低 Java 主版本；0 表示不限制。</param>
+    Public Function FindJava(Optional MinJavaMajor As Integer = 0) As String
+        Dim Candidates As New List(Of String)
         Try
             Dim Raw As String = Settings.Get(Of String)("LaunchArgumentJavaAll")
             If Not String.IsNullOrWhiteSpace(Raw) Then
                 Dim Arr As JArray = JArray.Parse(Raw)
                 For Each Item In Arr
                     Dim P As String = If(Item("Path")?.ToString(), "")
-                    If Not String.IsNullOrWhiteSpace(P) AndAlso FileUtils.Exists(P) Then Return P
+                    If Not String.IsNullOrWhiteSpace(P) AndAlso FileUtils.Exists(P) Then Candidates.Add(P)
                 Next
             End If
             Dim Sel As String = Settings.Get(Of String)("LaunchArgumentJavaSelect")
             If Not String.IsNullOrWhiteSpace(Sel) AndAlso Sel.StartsWith("{", StringComparison.Ordinal) Then
                 Dim P As String = JObject.Parse(Sel)("Path")?.ToString()
-                If Not String.IsNullOrWhiteSpace(P) AndAlso FileUtils.Exists(P) Then Return P
+                If Not String.IsNullOrWhiteSpace(P) AndAlso FileUtils.Exists(P) Then Candidates.Add(P)
             End If
         Catch ex As Exception
             Logger.Warn(ex, "从设置读取 Java 列表失败")
+        End Try
+        'Mojang 随游戏下载的运行时也要算进来，它们常是唯一满足新版要求的
+        Try
+            Dim Rt = System.IO.Path.Combine(Paths.AppData, ".minecraft", "runtime")
+            If DirectoryUtils.Exists(Rt) Then
+                For Each D In System.IO.Directory.GetDirectories(Rt)
+                    Dim P = System.IO.Path.Combine(D, "bin", "java.exe")
+                    If FileUtils.Exists(P) Then Candidates.Add(P)
+                Next
+            End If
+        Catch
         End Try
         Try
             Dim Env = Environment.GetEnvironmentVariable("JAVA_HOME")
             If Not String.IsNullOrWhiteSpace(Env) Then
                 Dim P = System.IO.Path.Combine(Env, "bin", "java.exe")
-                If FileUtils.Exists(P) Then Return P
+                If FileUtils.Exists(P) Then Candidates.Add(P)
             End If
         Catch
         End Try
-        Return Nothing
+
+        If Candidates.Count = 0 Then Return Nothing
+
+        Dim Best As String = Nothing
+        Dim BestMajor As Integer = -1
+        For Each P In Candidates.Distinct()
+            Dim Major = GetJavaMajor(P)
+            If Best Is Nothing OrElse Major > BestMajor Then
+                Best = P
+                BestMajor = Major
+            End If
+            If MinJavaMajor > 0 AndAlso Major >= MinJavaMajor Then Return P
+        Next
+        If MinJavaMajor > 0 AndAlso BestMajor < MinJavaMajor Then
+            Logger.Warn($"服务端要求 Java {MinJavaMajor}+，但只找到 Java {BestMajor}（{Best}），启动很可能失败")
+        End If
+        Return Best
+    End Function
+
+    ''' <summary>读取某个 java.exe 的主版本号；失败返回 0。</summary>
+    Public Function GetJavaMajor(JavaPath As String) As Integer
+        Try
+            If String.IsNullOrWhiteSpace(JavaPath) OrElse Not FileUtils.Exists(JavaPath) Then Return 0
+            Dim Psi As New ProcessStartInfo With {
+                .FileName = JavaPath, .Arguments = "-version",
+                .UseShellExecute = False, .CreateNoWindow = True,
+                .RedirectStandardError = True, .RedirectStandardOutput = True
+            }
+            Using P As Process = Process.Start(Psi)
+                Dim Txt = P.StandardError.ReadToEnd() & P.StandardOutput.ReadToEnd()
+                P.WaitForExit(3000)
+                Dim M = Text.RegularExpressions.Regex.Match(Txt, "version ""(\d+)(?:\.(\d+))?")
+                If Not M.Success Then Return 0
+                Dim First = Integer.Parse(M.Groups(1).Value)
+                If First = 1 AndAlso M.Groups(2).Success Then Return Integer.Parse(M.Groups(2).Value)
+                Return First
+            End Using
+        Catch
+            Return 0
+        End Try
+    End Function
+
+    ''' <summary>按 MC 版本推算最低 Java 主版本。</summary>
+    Private Function JavaMajorForMc(V As ServerVersion) As Integer
+        Try
+            If V Is Nothing OrElse String.IsNullOrWhiteSpace(V.Name) Then Return 17
+            Dim Parts = V.Name.Split("."c)
+            If Parts.Length = 0 Then Return 17
+            Dim Maj As Integer = 0
+            If Not Integer.TryParse(Parts(0), Maj) Then Return 17
+            If Maj >= 26 Then Return 25
+            If Maj = 1 AndAlso Parts.Length >= 2 Then
+                Dim Min As Integer = 0
+                Integer.TryParse(Parts(1), Min)
+                If Min >= 20 Then Return 21
+                If Min >= 17 Then Return 17
+                Return 8
+            End If
+            Return 17
+        Catch
+            Return 17
+        End Try
     End Function
 
     ''' <summary>构造启动参数。内存下限 1024，避免填 0 后起不来。</summary>
@@ -603,11 +692,18 @@ Partial Public Module ModServer
                 Return False
             End If
 
-            Dim Java = FindJava()
+            Dim NeedMajor As Integer = JavaMajorForMc(V)
+            Dim Java = FindJava(NeedMajor)
             If Java Is Nothing Then
                 Hint("没有可用的 Java，请先在设置里安装 Java", HintType.Red)
                 Return False
             End If
+            Dim JavaMajor = GetJavaMajor(Java)
+            If NeedMajor > 0 AndAlso JavaMajor > 0 AndAlso JavaMajor < NeedMajor Then
+                Hint($"这个服务端需要 Java {NeedMajor} 或更高，但找到的是 Java {JavaMajor}。请到「设置 → 启动选项」添加更新的 Java。", HintType.Red, False)
+                Return False
+            End If
+            Logger.Info($"服务端使用 Java {JavaMajor}（{Java}），要求 Java {NeedMajor}+")
 
             WriteProperties(V)
 
@@ -639,6 +735,49 @@ Partial Public Module ModServer
             Proc.BeginOutputReadLine()
             Proc.BeginErrorReadLine()
 
+            '服务端起不来是常见投诉点：把 stderr 留下来并翻译成可读提示
+            Dim LastErr As New Concurrent.ConcurrentQueue(Of String)
+            AddHandler Proc.ErrorDataReceived,
+                Sub(sender, e)
+                    If e.Data Is Nothing Then Return
+                    LastErr.Enqueue(e.Data)
+                    While LastErr.Count > 20
+                        Dim Drop As String = Nothing
+                        LastErr.TryDequeue(Drop)
+                    End While
+                End Sub
+            AddHandler Proc.Exited,
+                Sub(sender, e)
+                    Try
+                        Dim Code = Proc.ExitCode
+                        Running = Nothing
+                        If Code = 0 Then
+                            Logger.Info($"服务端正常退出：{V.Name}")
+                            Return
+                        End If
+                        Dim Detail = String.Join(vbCrLf, LastErr.ToArray().Take(6))
+                        Logger.Error($"服务端异常退出（代码 {Code}）：{V.Name}" & vbCrLf & Detail)
+                        Dim Friendly As String
+                        If Detail.Contains("requires Java") OrElse Detail.Contains("requires running the server with Java") Then
+                            Friendly = "这个服务端需要更高版本的 Java。请到「设置 → 启动选项」添加新版本 Java 后重试。"
+                        ElseIf Detail.Contains("SSLHandshakeException") OrElse Detail.Contains("SSL peer shut down") OrElse Detail.Contains("Failed to download") Then
+                            Friendly = "服务端首次启动需要联网下载 Mojang 官方文件，但连接被中断。" & vbCrLf & "请检查网络或代理后重试（不需要重建服务端）。"
+                        ElseIf Detail.Contains("Address already in use") Then
+                            Friendly = $"端口 {V.Port} 已被占用，请换端口或关掉占用程序。"
+                        ElseIf Detail.Contains("UnsupportedClassVersionError") Then
+                            Friendly = "Java 版本太旧，无法运行这个服务端。"
+                        ElseIf Detail.Contains("OutOfMemoryError") Then
+                            Friendly = $"内存不足（当前 {V.MemoryMB} MB），请在服务端设置里调高。"
+                        Else
+                            Friendly = $"服务端启动后立即退出（代码 {Code}），详见控制台输出。"
+                        End If
+                        RunInUi(Sub() Hint(Friendly, HintType.Red, False))
+                    Catch ex2 As Exception
+                        Logger.Warn(ex2, "处理服务端退出事件失败")
+                    End Try
+                End Sub
+
+            Running = Proc
             Running = Proc
             RunningVersion = V
             Logger.Info($"服务端已启动：{V.Name}，内存 {V.MemoryMB}MB，端口 {V.Port}")

@@ -293,34 +293,223 @@ Public Class PageServerMain
         Return Card
     End Function
 
-    ''' <summary>修改某个服务端的端口/内存/正版验证。</summary>
+    ''' <summary>
+    ''' 完整配置页。原实现只弹三个输入框（端口/内存/正版验证），但
+    ''' pcl-server.json 里有 40 多个字段（MOTD、最大人数、视距、难度、白名单、RCON…），
+    ''' 玩家想改任何一项都无从下手。这里按「基础 / 世界 / 玩法 / 网络 / 高级」分组铺开。
+    ''' </summary>
     Private Sub EditVersionConfig(V As ModServer.ServerVersion)
         Try
-            Dim PortStr As String = MyMsgBoxInput("端口", "服务端监听端口，默认 25565。",
-                DefaultInput:=V.Port.ToString(),
-                ValidateRules:=New System.Collections.ObjectModel.Collection(Of Validate) From {New ValidateInteger(1024, 65535)})
-            If PortStr Is Nothing Then Return
+            If V Is Nothing Then Return
 
-            Dim MemStr As String = MyMsgBoxInput("内存", "分配给服务端的内存（MB）。建议不低于 1024。",
-                DefaultInput:=V.MemoryMB.ToString(),
-                ValidateRules:=New System.Collections.ObjectModel.Collection(Of Validate) From {New ValidateInteger(512, 65536)})
-            If MemStr Is Nothing Then Return
+            Dim Win As New Window With {
+                .Title = $"{V.Name} 的配置",
+                .Width = 720, .Height = 620,
+                .WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                .Owner = FrmMain,
+                .ResizeMode = ResizeMode.CanResize
+            }
+            Try
+                Win.Background = New SolidColorBrush(Color.FromRgb(&HF7, &HF7, &HF7))
+            Catch
+            End Try
 
-            Dim OnlineChoice As Integer = MyMsgBox(
-                "开启正版验证吗？" & vbCrLf & vbCrLf &
-                "开启：只有正版账号能进（online-mode=true）。" & vbCrLf &
-                "关闭：离线账号也能进，但无法防冒名（online-mode=false）。",
-                "正版验证", If(V.OnlineMode, "保持开启", "关闭"), If(V.OnlineMode, "关闭", "保持开启"))
-            If OnlineChoice = 0 Then Return
+            Dim Root As New StackPanel With {.Margin = New Thickness(24, 20, 24, 20)}
+            Dim Scroll As New ScrollViewer With {
+                .VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                .HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                .Content = Root
+            }
 
-            V.Port = CInt(Val(PortStr))
-            V.MemoryMB = CInt(Val(MemStr))
-            If OnlineChoice = 1 Then V.OnlineMode = V.OnlineMode Else V.OnlineMode = Not V.OnlineMode
-            ModServer.SaveConfig(V)
-            Refresh()
-            Hint("配置已保存", HintType.Green)
+            '──── 表单控件工厂：每项都是「标签 + 输入 + 说明」一行 ────
+            Dim Fields As New List(Of Func(Of Boolean))
+
+            Dim AddRow As Action(Of String, String, FrameworkElement) =
+                Sub(Label As String, Tip As String, Input As FrameworkElement)
+                    Dim Row As New Grid With {.Margin = New Thickness(0, 0, 0, 14)}
+                    Row.ColumnDefinitions.Add(New ColumnDefinition With {.Width = New GridLength(180)})
+                    Row.ColumnDefinitions.Add(New ColumnDefinition With {.Width = New GridLength(1, GridUnitType.Star)})
+                    Dim Lab As New TextBlock With {
+                        .Text = Label, .VerticalAlignment = VerticalAlignment.Center,
+                        .FontSize = 13, .TextWrapping = TextWrapping.Wrap
+                    }
+                    If Tip <> "" Then Lab.ToolTip = Tip
+                    Grid.SetColumn(Lab, 0)
+                    Row.Children.Add(Lab)
+                    Input.Margin = New Thickness(12, 0, 0, 0)
+                    Grid.SetColumn(Input, 1)
+                    Row.Children.Add(Input)
+                    Root.Children.Add(Row)
+                End Sub
+
+            '──── 分组标题 ────
+            Dim AddGroup As Action(Of String) =
+                Sub(T As String)
+                    Root.Children.Add(New TextBlock With {
+                        .Text = T, .FontSize = 15, .FontWeight = FontWeights.Bold,
+                        .Margin = New Thickness(0, 12, 0, 12)
+                    })
+                End Sub
+
+            Dim TextBoxes As New Dictionary(Of String, TextBox)
+            Dim Checks As New Dictionary(Of String, CheckBox)
+            Dim Combos As New Dictionary(Of String, ComboBox)
+
+            Dim AddText As Action(Of String, String, String) =
+                Sub(Key As String, Label As String, Tip As String)
+                    Dim Tb As New TextBox With {.Height = 28, .Text = If(TryCast(V.GetType().GetProperty(Key)?.GetValue(V), String), "")}
+                    TextBoxes(Key) = Tb
+                    AddRow(Label, Tip, Tb)
+                End Sub
+
+            Dim AddNum As Action(Of String, String, String) =
+                Sub(Key As String, Label As String, Tip As String)
+                    Dim Cur = V.GetType().GetProperty(Key)?.GetValue(V)
+                    Dim Tb As New TextBox With {.Height = 28, .Text = If(Cur Is Nothing, "0", Cur.ToString())}
+                    TextBoxes(Key) = Tb
+                    AddRow(Label, Tip, Tb)
+                End Sub
+
+            Dim AddCheck As Action(Of String, String, String) =
+                Sub(Key As String, Label As String, Tip As String)
+                    Dim Cur = V.GetType().GetProperty(Key)?.GetValue(V)
+                    Dim Cb As New CheckBox With {
+                        .IsChecked = (Cur IsNot Nothing AndAlso CBool(Cur)),
+                        .VerticalAlignment = VerticalAlignment.Center,
+                        .Content = If(Tip <> "", Tip, "")
+                    }
+                    Checks(Key) = Cb
+                    AddRow(Label, "", Cb)
+                End Sub
+
+            Dim AddCombo As Action(Of String, String, String, String()) =
+                Sub(Key As String, Label As String, Tip As String, Options As String())
+                    Dim Cur = TryCast(V.GetType().GetProperty(Key)?.GetValue(V), String)
+                    Dim Cb As New ComboBox With {.Height = 28}
+                    For Each O In Options
+                        Cb.Items.Add(O)
+                    Next
+                    If Cur IsNot Nothing AndAlso Options.Contains(Cur) Then Cb.SelectedItem = Cur
+                    If Cb.SelectedIndex < 0 Then Cb.SelectedIndex = 0
+                    Combos(Key) = Cb
+                    AddRow(Label, Tip, Cb)
+                End Sub
+
+            AddGroup("基础")
+            AddNum("Port", "端口", "服务端监听端口，默认 25565。改完要重启服务端生效。")
+            AddNum("MemoryMB", "内存（MB）", "建议不低于 1024。给太少会卡，给太多会占满物理内存。")
+            AddText("Motd", "服务器描述（MOTD）", "多人游戏列表里显示的服务器简介。支持 § 颜色代码。")
+            AddNum("MaxPlayers", "最大玩家数", "同时在线的玩家上限。")
+            AddCheck("OnlineMode", "正版验证", "开启后只有正版账号能进。关闭则离线账号也能进，但无法防冒名。")
+            AddCheck("Enabled", "在列表中启用", "关闭后列表里这个服务端的启动按钮会置灰。")
+
+            AddGroup("世界")
+            AddText("LevelName", "世界文件夹名", "默认 world。换名字等于换一个世界。")
+            AddText("LevelSeed", "世界种子", "留空则随机生成。")
+            AddCombo("LevelType", "世界类型", "决定地形生成方式。",
+                     {"minecraft:normal", "minecraft:flat", "minecraft:large_biomes", "minecraft:amplified"})
+            AddNum("MaxWorldSize", "世界边界半径", "以方块为单位。默认 29999984（约 3000 万）。")
+
+            AddGroup("玩法")
+            AddCombo("Difficulty", "难度", "和平下不会刷怪且会自动回血。",
+                     {"peaceful", "easy", "normal", "hard"})
+            AddCombo("GameMode", "默认游戏模式", "玩家首次进入时的模式。",
+                     {"survival", "creative", "adventure", "spectator"})
+            AddCheck("Hardcore", "极限模式", "死亡后只能观战，不能复活。")
+            AddCheck("Pvp", "允许玩家互相伤害", "")
+            AddCheck("ForceGameMode", "强制使用默认游戏模式", "开启后玩家每次进入都会被重置为该模式。")
+            AddCheck("AllowFlight", "允许飞行", "")
+            AddCheck("AllowNether", "允许进入下界", "")
+            AddCheck("SpawnMonsters", "生成怪物", "")
+            AddCheck("SpawnAnimals", "生成动物", "")
+            AddCheck("EnableCommandBlock", "启用命令方块", "")
+            AddNum("SpawnProtection", "出生点保护半径", "以方块为单位，非 OP 玩家在半径内不能破坏方块。0 表示关闭。")
+            AddNum("PlayerIdleTimeout", "挂机踢出（分钟）", "0 表示不踢。")
+
+            AddGroup("网络与性能")
+            AddNum("ViewDistance", "视距（区块）", "越大越吃内存和带宽。10 是官方默认。")
+            AddNum("SimulationDistance", "模拟距离（区块）", "影响实体与方块更新的范围。")
+            AddNum("NetworkCompressionThreshold", "网络压缩阈值", "小于该字节数的包不压缩。默认 256。")
+            AddNum("RateLimit", "每秒数据包上限", "0 表示不限制。")
+            AddNum("EntityBroadcastRangePercentage", "实体广播范围（%）", "默认 100。调低可省带宽。")
+            AddCheck("PreventProxyConnections", "阻止代理连接", "")
+            AddCheck("UseNativeTransport", "使用原生网络传输（epoll）", "Linux 上能提性能；Windows 上无效。")
+            AddCheck("SyncChunkWrites", "同步写入区块", "更安全但更慢。")
+            AddCheck("EnableStatus", "响应服务器列表查询", "关闭后多人列表里看不到在线人数。")
+
+            AddGroup("白名单与权限")
+            AddCheck("WhiteList", "启用白名单", "只有 whitelist.json 里的玩家能进。")
+            AddCheck("EnforceWhitelist", "强制白名单", "开启后即使 OP 也必须先加白名单。")
+            AddNum("OpPermissionLevel", "OP 权限等级", "1~4，默认 4。")
+            AddNum("FunctionPermissionLevel", "函数权限等级", "1~4，默认 2。")
+
+            AddGroup("远程管理")
+            AddCheck("EnableQuery", "启用 Query 查询", "GameSpy4 协议，用于外部工具读服务器状态。")
+            AddNum("QueryPort", "Query 端口", "默认 25565。")
+            AddCheck("EnableRcon", "启用 RCON 远程控制台", "允许外部程序发命令，务必配强密码。")
+            AddNum("RconPort", "RCON 端口", "默认 25575。")
+            AddText("RconPassword", "RCON 密码", "留空表示不启用密码（不安全）。")
+
+            '──── 底部按钮 ────
+            Dim BtnRow As New StackPanel With {
+                .Orientation = Orientation.Horizontal,
+                .HorizontalAlignment = HorizontalAlignment.Right,
+                .Margin = New Thickness(0, 18, 0, 0)
+            }
+            Dim BtnCancel As New MyButton With {.Text = "取消", .Height = 34, .MinWidth = 100}
+            AddHandler BtnCancel.Click, Sub() Win.Close()
+            BtnRow.Children.Add(BtnCancel)
+
+            Dim BtnSave As New MyButton With {
+                .Text = "保存", .Height = 34, .MinWidth = 100,
+                .Margin = New Thickness(12, 0, 0, 0), .ColorType = MyButton.ColorState.Highlight
+            }
+            AddHandler BtnSave.Click,
+                Sub()
+                    Try
+                        '先校验所有数字字段，避免保存一半才发现错
+                        For Each Pair In TextBoxes
+                            Dim Prop = V.GetType().GetProperty(Pair.Key)
+                            If Prop Is Nothing Then Continue For
+                            Dim Raw = Pair.Value.Text.Trim()
+                            If Prop.PropertyType Is GetType(Integer) Then
+                                Dim N As Integer
+                                If Not Integer.TryParse(Raw, N) Then
+                                    Hint($"{Pair.Key} 必须是整数，当前是「{Raw}」", HintType.Red)
+                                    Return
+                                End If
+                                Prop.SetValue(V, N)
+                            Else
+                                Prop.SetValue(V, Raw)
+                            End If
+                        Next
+                        For Each Pair In Checks
+                            Dim Prop = V.GetType().GetProperty(Pair.Key)
+                            If Prop IsNot Nothing Then Prop.SetValue(V, Pair.Value.IsChecked = True)
+                        Next
+                        For Each Pair In Combos
+                            Dim Prop = V.GetType().GetProperty(Pair.Key)
+                            If Prop IsNot Nothing AndAlso Pair.Value.SelectedItem IsNot Nothing Then
+                                Prop.SetValue(V, Pair.Value.SelectedItem.ToString())
+                            End If
+                        Next
+
+                        ModServer.SaveConfig(V)
+                        Refresh()
+                        Hint("配置已保存" & If(ModServer.IsRunning, "，重启服务端后生效", ""), HintType.Green)
+                        Win.Close()
+                    Catch ex As Exception
+                        Logger.Error(ex, "保存服务端配置失败")
+                        Hint($"保存失败：{ex.Message}", HintType.Red)
+                    End Try
+                End Sub
+            BtnRow.Children.Add(BtnSave)
+            Root.Children.Add(BtnRow)
+
+            Win.Content = Scroll
+            Win.ShowDialog()
         Catch ex As Exception
-            Logger.Error(ex, "修改服务端配置失败")
+            Logger.Error(ex, "打开服务端配置页失败")
         End Try
     End Sub
 
@@ -445,10 +634,64 @@ Public Class PageServerMain
 
     '==== 控制台 ====
 
+    '服务端（尤其 Paper）在国内网络下会反复打印「连不上 Mojang 认证服务」的 Java 堆栈，
+    '一次几十行，把真正有用的启动日志全挤跑了。这里把堆栈折成一行摘要，
+    '玩家想看细节仍然能从 Log1.txt 里翻。
+    Private _StackLines As Integer = 0
+    Private _StackHead As String = ""
+
+    ''' <summary>判断这一行是不是 Java 堆栈的续行。</summary>
+    Private Shared Function IsStackContinuation(Line As String) As Boolean
+        If String.IsNullOrEmpty(Line) Then Return False
+        Dim T = Line.TrimStart()
+        Return T.StartsWith("at ") OrElse T.StartsWith("Caused by:") OrElse
+               T.StartsWith("...") OrElse T.StartsWith("Suppressed:") OrElse
+               (T.Length > 0 AndAlso T(0) = ChrW(9))
+    End Function
+
+    ''' <summary>把常见 Java 异常翻译成一句人话。</summary>
+    Private Shared Function ExplainStackHead(Head As String) As String
+        If Head.Contains("discovery.minecraftservices.com") OrElse Head.Contains("Services are unavailable") Then
+            Return "连不上 Mojang 认证服务（国内网络常见，不影响本地开服）"
+        End If
+        If Head.Contains("SSLHandshakeException") OrElse Head.Contains("SSL peer shut down") Then
+            Return "与 Mojang 服务器的 TLS 握手被中断（国内网络常见）"
+        End If
+        If Head.Contains("UnknownHostException") OrElse Head.Contains("NameResolutionFailure") Then
+            Return "域名解析失败（检查网络或 DNS）"
+        End If
+        If Head.Contains("OutOfMemoryError") Then Return "内存不足"
+        If Head.Contains("UnsupportedClassVersionError") Then Return "Java 版本不匹配"
+        If Head.Contains("Address already in use") Then Return "端口被占用"
+        If Head.Contains("MinecraftClientException") Then Return "Mojang 服务请求失败"
+        Return ""
+    End Function
+
     Public Sub AppendConsole(Line As String)
         Try
             If TextConsoleOutput Is Nothing Then Return
             Dim Stamp = Date.Now.ToString("HH:mm:ss")
+
+            '堆栈续行：只累计，不打印
+            If IsStackContinuation(Line) Then
+                _StackLines += 1
+                Return
+            End If
+
+            '上一条堆栈结束了，补一行摘要
+            If _StackLines > 0 Then
+                Dim Why = ExplainStackHead(_StackHead)
+                Dim Extra = If(Why <> "", "" & Why & "；", "")
+                TextConsoleOutput.Text &= $"[{Stamp}]    └─ 省略 {_StackLines} 行堆栈详情（{Extra}完整内容见 Log1.txt）" & vbCrLf
+                _StackLines = 0
+                _StackHead = ""
+            End If
+
+            '这一行是新的异常头，记下来等后续堆栈行汇总
+            If Line.Contains("Exception") OrElse Line.Contains("Error:") Then
+                _StackHead = Line
+            End If
+
             TextConsoleOutput.Text &= $"[{Stamp}] {Line}" & vbCrLf
             If TextConsoleOutput.Text.Length > 200000 Then
                 TextConsoleOutput.Text = TextConsoleOutput.Text.Substring(TextConsoleOutput.Text.Length - 100000)
@@ -456,6 +699,12 @@ Public Class PageServerMain
             ScrollConsole.ScrollToEnd()
         Catch
         End Try
+    End Sub
+
+    ''' <summary>清空控制台时把堆栈累计归零。</summary>
+    Private Sub ResetConsoleStackState()
+        _StackLines = 0
+        _StackHead = ""
     End Sub
 
     Private Sub RenderConsole()
@@ -522,6 +771,7 @@ Public Class PageServerMain
 
     Private Sub BtnConsoleClear_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnConsoleClear.MouseLeftButtonUp
         Try
+            ResetConsoleStackState()
             TextConsoleOutput.Text = ""
         Catch
         End Try
